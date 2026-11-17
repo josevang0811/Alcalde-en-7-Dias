@@ -28,7 +28,7 @@ final int CICLO_TIMBRE = 2600;      // cada cuanto se repite el "ring, ring"
 final int DURACION_CONTESTAR = 650;
 final int DURACION_CORTE = 1400;    // lo que dura el "tu, tu, tu"
 final int DURACION_COLGAR = 550;
-final int MS_POR_LETRA = 28;
+final int MS_POR_LETRA = 24;   // un poco más rápido, al ritmo de las voces (+25%)
 
 int faseLlamada = LLAMADA_NINGUNA;
 // Con la Libreta de notas del arbol se puede volver a oir la noticia, una
@@ -334,12 +334,12 @@ void calcularMomentosLetras() {
             i++;
             char c = parte.charAt(k);
             if (c == '.' || c == '!' || c == '?' || c == ':') {
-                t += 260;
+                t += 220;
             } else if (c == ',' || c == ';') {
-                t += 120;
+                t += 100;
             }
         }
-        t += 380;
+        t += 320;
     }
     finEscritura = t;
 }

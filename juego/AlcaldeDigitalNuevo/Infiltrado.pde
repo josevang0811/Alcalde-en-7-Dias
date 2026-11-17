@@ -7613,7 +7613,7 @@ Clip vozDeAzure(String texto) throws Exception {
 // La misma, con otra voz (la periodista usa vozPeriodista)
 Clip vozDeAzure(String texto, String voz) throws Exception {
   String ssml = "<speak version='1.0' xml:lang='es-CO'><voice name='" + voz + "'>" +
-    "<prosody rate='+6%'>" + escaparXml(texto) + "</prosody></voice></speak>";
+    "<prosody rate='+25%'>" + escaparXml(texto) + "</prosody></voice></speak>";
   String[][] cab = {{"Ocp-Apim-Subscription-Key", claveAzure}, {"Content-Type", "application/ssml+xml"},
     {"X-Microsoft-OutputFormat", "riff-24khz-16bit-mono-pcm"}, {"User-Agent", "InfiltradoPrueba"}};
   // si esta frase ya se dijo antes, se usa la grabacion guardada
