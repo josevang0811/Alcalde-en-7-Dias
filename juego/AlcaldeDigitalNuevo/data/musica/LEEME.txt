@@ -1,0 +1,4 @@
+Aquí va la música propia de Infiltrado (uso privado, no se distribuye).
+Nombres: calma.wav, tension.wav, alerta.wav, escape.wav y, si quieres, menu.wav
+(WAV de 16 bits; Claude convierte los mp3 u ogg a este formato).
+Si falta alguno, el juego usa la música generada de data/musica_respaldo/.

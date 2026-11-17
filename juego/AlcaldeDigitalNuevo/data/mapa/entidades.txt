@@ -1,0 +1,23 @@
+# vigilante <color> x,y x,y ...  (baldosas de su ronda)
+vigilante FFB547 30,25 40,29 12,29 11,23
+vigilante FF2E88 4,19 15,16 18,17 40,18 25,19
+vigilante 19E3E3 10,9 27,9 27,12 10,12
+vigilante 3DDC84 37,10 38,4 31,3 26,3 38,4
+vigilante E8344E 5,9 5,12 3,3 5,9
+# jefe <color> x,y ...  (jefe de seguridad: te reconoce disfrazado si estas cerca)
+jefe E6E8EC 21,18 38,18 38,11 36,17
+# civil <civil|civil2> x,y x,y ...  (puestos donde trabaja el empleado)
+civil civil 13,10 17,9 21,10 17,12
+civil civil2 39,11 36,10 41,11
+# camara x y angulo amplitud  (angulos en grados)
+camara 1.15 15.15 45 50
+camara 9.15 13.85 -45 40
+camara 42.85 15.15 135 45
+camara 24.15 1.15 45 50
+camara 41.85 22.15 135 40
+# ducto <rejilla A> <rejilla B>  (x,y de cada rejilla)
+ducto 40,22 32,12
+ducto 32,12 32,2
+# tablero x,y <zonas que apaga>  (0 exterior 1 recepcion 2 redaccion 3 estudio 4 seguridad 5 archivo 6 servidor 7 rival 8 pasillo 9 aseo 10 descanso)
+tablero 30,7 2 9
+tablero 20,15 8 1

@@ -1,0 +1,6 @@
+# Ejemplo de lo que Alcalde Digital escribe en data/campana.txt antes de
+# entrar a Infiltrado. Si campana.txt no existe, se usan valores de prueba.
+barrio=La Colina
+apoyo=45
+bulo=agua contaminada en El Puerto
+habilidades=Volantes,Megáfono,Libreta de notas,Fuente confiable,Asistente de IA

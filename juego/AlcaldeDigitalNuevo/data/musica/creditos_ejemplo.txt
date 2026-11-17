@@ -1,0 +1,5 @@
+# Copia este archivo como creditos.txt y pon el nombre real de cada pista.
+calma=Nombre de la canción — Johan Söderqvist y Patrik Andrén (ARC Raiders)
+tension=Nombre de la canción — Marcin Przybyłowicz (Cyberpunk 2077)
+alerta=Nombre de la canción — P.T. Adamczyk (Cyberpunk 2077)
+escape=Nombre de la canción — Paul Leonard-Morgan (Cyberpunk 2077)
