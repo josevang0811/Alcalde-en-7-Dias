@@ -35,7 +35,9 @@ CONF = {
 // carpeta MundoAbiertoPrueba (cada parte lleva arriba el nombre de su archivo).
 '''),
 }[SKETCH]
-archivos = [SKETCH + '.pde'] + sorted(f for f in os.listdir(src) if f.endswith('.pde') and f != SKETCH + '.pde')
+# Ambiente.pde de la prueba no se mete: en el juego ya existe Ambiente.pde (con F8 y ajustes).
+SOLO_PRUEBA = {'Ambiente.pde'}
+archivos = [SKETCH + '.pde'] + sorted(f for f in os.listdir(src) if f.endswith('.pde') and f != SKETCH + '.pde' and f not in SOLO_PRUEBA)
 imports = []
 cuerpo = []
 for f in archivos:

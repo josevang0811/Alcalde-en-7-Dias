@@ -22,11 +22,17 @@ void leerAjustes() {
         if (p.length == 2 && p[0].equals("volumen_musica")) {
             volumenMusica = constrain(float(p[1]), 0, 1);
         }
+        if (p.length == 2 && p[0].equals("ambiente")) {
+            ambienteMundo = p[1];   // Ambiente.pde
+        }
     }
 }
 
 void guardarAjustes() {
-    saveStrings(dataPath("ajustes.txt"), new String[] {"volumen_musica=" + nf(volumenMusica, 1, 2).replace(',', '.')});
+    saveStrings(dataPath("ajustes.txt"), new String[] {
+        "volumen_musica=" + nf(volumenMusica, 1, 2).replace(',', '.'),
+        "ambiente=" + ambienteMundo
+    });
 }
 
 // Cada cuadro (desde actualizarLlamada): fuera de la misión suena la calma,
@@ -44,7 +50,7 @@ void actualizarMusicaJuego() {
     }
     mision.musica.momento = mision.M_CALMA;
     boolean hablan = videollamadaActiva || faseLlamada == LLAMADA_HABLANDO;
-    mision.musica.atenuar = hablan ? 0.3 : 1;
+    mision.musica.atenuar = cinematicaActiva() ? 0 : (hablan ? 0.3 : 1);   // en las cinemáticas, sin música
 }
 
 void cambiarVolumen(float v) {

@@ -41,8 +41,20 @@ final int PAUSA_ENTRE_FRASES = 350;
 // son los dos pixeles rosados de la fila 11; abierta, se oscurecen y bajan
 // una fila. Los ojos son los pixeles (7, 7) y (12, 7).
 void cargarBienvenida() {
-    PImage base = loadImage("valeria.png");
     imgTVApagado = loadImage("tv/televisor_apagado.jpg");
+    // Si el equipo de diseño ya dibujó el retrato grande de Valeria
+    // (data/retratos/valeria_base.png, valeria_habla.png y
+    // valeria_parpadeo.png, ver docs/guia-personajes.md), se usa ese.
+    if (new java.io.File(dataPath("retratos/valeria_base.png")).exists()) {
+        String[] nombres = {"base", "habla", "parpadeo"};
+        caraValeriaTV = new PImage[3];
+        for (int i = 0; i < 3; i++) {
+            String archivo = "retratos/valeria_" + nombres[i] + ".png";
+            caraValeriaTV[i] = new java.io.File(dataPath(archivo)).exists() ? loadImage(archivo) : loadImage("retratos/valeria_base.png");
+        }
+        return;
+    }
+    PImage base = loadImage("valeria.png");
     caraValeriaTV = new PImage[3];
     for (int i = 0; i < 3; i++) {
         caraValeriaTV[i] = base.get();
@@ -286,9 +298,11 @@ void dibujarCaraValeria(float x, float y, float w, float h) {
     if (millis() % 3600 < 130) {
         cara = 2;
     }
-    float lado = h * 0.78;
+    PImage img = caraValeriaTV[cara];
+    float alto = h * 0.78;
+    float ancho = alto * img.width / (float) img.height;   // el retrato grande puede no ser cuadrado
     float respira = sin(millis() / 900.0) * h * 0.006;
-    image(caraValeriaTV[cara], x + w / 2 - lado / 2, y + h - lado + respira, lado, lado);
+    image(img, x + w / 2 - ancho / 2, y + h - alto + respira, ancho, alto);
 }
 
 // Arriba: quién llama, EN VIVO y el tiempo de la llamada

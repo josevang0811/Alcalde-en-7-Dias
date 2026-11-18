@@ -25,6 +25,8 @@ La idea es que el jugador aprenda a revisar una publicación antes de compartirl
 
 El juego abre en pantalla completa. Esc cierra la ventana que esté abierta y, en la oficina, vuelve al menú.
 
+Al empezar la primera campaña sale el **prólogo** (unos 25 segundos; se salta con Espacio). Dentro del mundo abierto, **F8** cambia el ambiente de color (ninguno, nublado, atardecer, noche).
+
 ### Valeria y las voces (opcional)
 
 El juego funciona sin conexión. Las frases de Valeria y la periodista ya vienen grabadas en `data/voz/`. Si quieres que Valeria genere frases nuevas con IA o que se graben voces nuevas, copia `juego/AlcaldeDigitalNuevo/data/valeria_ejemplo.txt` como `valeria.txt` y pon tus propias claves. Ese archivo está en el `.gitignore` y **nunca se debe subir**.
@@ -58,6 +60,7 @@ Lo central del curso está en estas clases de `juego/AlcaldeDigitalNuevo/`:
 | **BFS** (recorrido por niveles) | `GrafoCiudad.niveles()`, `alcanzables()` | Decide en qué barrios puedes publicar (los tuyos y los que están a 1 calle, o a 2 con *Perfil verificado*) y a quién le llega el bono de Volantes y Megáfono. |
 | **Dijkstra** | `GrafoCiudad.dijkstra()`, `caminoMasCorto()` | El camino por el que viaja una publicación desde tu territorio hasta el barrio elegido. |
 | **Lista como mazo** | `Noticiero.java` | Las noticias se barajan al empezar y se saca una por turno, sin repetir. |
+| **Cola** | `Cinematica.pde` | Los planos de una cinemática: se muestra el de adelante y, al terminar, se saca y sigue el próximo. |
 | **Listas** | `Influencer.java`, `Partida.java`, `Publicacion.java` | Las seis tarjetas del turno, el historial de publicaciones y los efectos de cada jugada. |
 
 ## Organización del repositorio
@@ -69,12 +72,15 @@ Lo central del curso está en estas clases de `juego/AlcaldeDigitalNuevo/`:
 │       ├── *.java                  Lógica y estructuras de datos
 │       ├── *.pde                   Pantallas, dibujo y animaciones
 │       └── data/                   Imágenes, sonidos, voces, mapa y mundo abierto
+├── herramientas/                   Pruebas de color del mundo abierto y bocetos del prólogo
 ├── fuentes-minijuegos/
 │   ├── InfiltradoPrueba/           Código fuente de la misión Infiltrado
 │   └── MundoAbiertoPrueba/         Código fuente del parque y la ciudad
 │       └── herramientas/           Scripts de Python (fusionar, generar ciudad, carros, sonidos)
 └── docs/
     ├── img/                        Logo y capturas
+    ├── rediseno.md                 Plan de historia y jugabilidad
+    ├── guia-personajes.md          Retratos, cinemáticas y color (para el equipo de diseño)
     └── notas-de-desarrollo.md      Bitácora y reglas de diseño del código
 ```
 
@@ -104,6 +110,8 @@ Lo central del curso está en estas clases de `juego/AlcaldeDigitalNuevo/`:
 | `EventoParque.pde`, `MundoAbierto.pde` | Los eventos del parque dentro de la campaña. |
 | `Red.pde` | Multijugador en red (puerto 5204). |
 | `Opciones.pde` | Volumen de la música. |
+| `Cinematica.pde` | Motor de cinemáticas: lee `data/cinematicas/*.txt` (el prólogo) y lo cuenta plano por plano. |
+| `Ambiente.pde` | Corrección de color del mundo abierto con un shader (`data/ambiente/ambiente.glsl`). |
 
 `Infiltrado.pde` y `MundoAbierto.pde` **no se editan a mano**. Se generan a partir de los sketches de `fuentes-minijuegos/` con:
 

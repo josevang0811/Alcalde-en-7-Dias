@@ -67,6 +67,7 @@ void draw() {
 
   background(150, 196, 226);
   dibujarCiudad();
+  aplicarAmbiente();   // corrección de color, antes del HUD (Ambiente.pde)
   dibujarHud();
 }
 

@@ -431,6 +431,12 @@ float tx(float base, float minimo) {
 void draw() {
     // Lo que llegó por la red (multijugador, Red.pde)
     procesarRed();
+    // Una cinemática (el prólogo) tapa todo mientras dura (Cinematica.pde)
+    if (cinematicaActiva()) {
+        actualizarMusicaJuego();
+        dibujarCinematica();
+        return;
+    }
     // Si a esta ronda le tocó la mision, mientras dura es lo unico que se ve.
     if (estado == MISION) {
         mision.dibujar();
@@ -474,6 +480,9 @@ void draw() {
 // Igual que draw(), mousePressed() solo despacha: cada pantalla revisa sus
 // propios botones u objetos.
 void mousePressed() {
+    if (cinematicaActiva()) {
+        return;   // en la cinemática el clic no hace nada (se salta con espacio)
+    }
     // En el menu del cajon se responde siempre (nada de la oficina lo bloquea)
     if (enMenu && !saliendo && !camaraBajando && !camaraSubiendo) {
         if (enSala) {
@@ -672,6 +681,13 @@ void reiniciarPartida() {
 // Al cerrar la portada empieza el primer turno: en un momento suena el
 // telefono.
 void cerrarPortada() {
+    // la primera vez, antes de la campaña, va el prólogo (Cinematica.pde);
+    // al terminar se vuelve a llamar a esta misma función
+    if (prologoPendiente) {
+        prologoPendiente = false;
+        empezarCinematica("prologo", "portada");
+        return;
+    }
     mostrarPortada = false;
     momentoFinPortada = millis();
     prepararLlamadaDelTurno();
@@ -699,6 +715,15 @@ void mostrarTextoFlotante(String texto, color c) {
 // sustentacion, que el recorrido preorden y las medidas del arbol funcionan
 // de verdad y no son solo una animacion en pantalla.
 void keyPressed() {
+    if (cinematicaActiva()) {
+        if (key == ESC) {
+            key = 0;
+        }
+        if (key == ' ' || key == ESC || key == ENTER || key == RETURN) {
+            saltarCinematica();
+        }
+        return;
+    }
     if (estado == MISION) {
         if (key == ESC) {
             key = 0;  // en la mision Esc no cierra el juego
@@ -709,6 +734,10 @@ void keyPressed() {
     if (estado == EVENTO) {
         if (key == ESC) {
             key = 0;
+        }
+        if (key == CODED && keyCode == 119) {   // F8: siguiente ambiente de color (Ambiente.pde)
+            siguienteAmbiente();
+            return;
         }
         mundo.teclaPresionada();
         return;

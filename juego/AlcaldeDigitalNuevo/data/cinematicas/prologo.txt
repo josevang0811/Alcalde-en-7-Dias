@@ -1,0 +1,73 @@
+# Prólogo — Andrés y Mateo (unos 25 segundos).
+# Los dibujos de data/cinematicas/prologo/ son bocetos: el equipo de diseño
+# los reemplaza por los definitivos con el mismo nombre y tamaño (320x180).
+# Las órdenes están explicadas al principio de Cinematica.pde.
+
+# 0. Aviso de contenido
+plano 4200
+fondo #000000
+rotulo AVISO|ESTA HISTORIA HABLA DE ACOSO EN REDES Y DE SUICIDIO.|SI NECESITAS HABLAR CON ALGUIEN: LÍNEA 192, OPCIÓN 4.
+fundido 300 500
+
+# 1. El cuarto de Andrés, de noche. El celular no para.
+plano 3600
+fondo #0a0a12
+capa prologo/cuarto.png 0 0
+camara 160 90 1.0 142 94 1.35
+sonido 500 sfx/aviso.wav
+sonido 1500 sfx/aviso.wav
+sonido 2400 sfx/aviso.wav
+fundido 800 150
+
+# 2. La pantalla: lo que publican de él
+plano 3600
+fondo #06060a
+capa prologo/celular_cerca.png 0 0
+camara 160 70 1.0 160 66 1.12
+globo 120 34 200 @ANONIMO: JAJA MÍRENLO
+globo 120 46 1000 TE ETIQUETARON EN UNA FOTO
+globo 120 58 1800 @LUCHO.P: DA PENA
+globo 120 70 2500 +1,2 MIL REACCIONES
+sonido 200 sfx/aviso.wav
+sonido 1000 sfx/aviso.wav
+sonido 1800 sfx/aviso.wav
+sonido 2500 sfx/aviso.wav
+fundido 100 250
+
+# 3. El balcón. Mateo llega a buscarlo para jugar.
+plano 5600
+fondo #1a1626
+capa prologo/balcon.png 0 0
+capa prologo/mateo_puerta.png 0 0 1200
+camara 200 108 1.15 150 100 1.0
+subtitulo 1600 Mateo|¿Jugamos?
+subtitulo 3000 Andrés|Mateo... no vivas la vida que yo viví.
+fundido 500 120
+
+# 4. Negro. Se oye el golpe.
+plano 1800
+fondo #000000
+sonido 600 sfx_mundo/golpe.wav
+fundido 0 0
+
+# 5. El celular en el piso sigue recibiendo notificaciones
+plano 2800
+fondo #08080c
+capa prologo/celular_piso.png 0 0
+camara 165 140 1.4 165 140 1.6
+sonido 300 sfx/aviso.wav
+sonido 1500 sfx/aviso.wav
+fundido 300 900
+
+# 6. El salto en el tiempo
+plano 2200
+fondo #000000
+rotulo 25 AÑOS DESPUÉS
+fundido 200 400
+
+# 7. La oficina de campaña de Mateo
+plano 3800
+ajustar oficina_fondo.jpg
+camara 160 90 1.2 160 90 1.0
+subtitulo 500 |Mateo es candidato. Quiere que nadie más viva lo que vivió Andrés.
+fundido 700 600
