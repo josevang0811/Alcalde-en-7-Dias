@@ -9,7 +9,8 @@ Alcalde en 7 Días: juego en Processing 4 (Java) para Estructura de Datos II, Un
 
 ## Dónde está cada cosa
 
-- `juego/AlcaldeDigitalNuevo/`: el juego. Se abre `AlcaldeDigitalNuevo.pde` en Processing.
+- `juego/AlcaldeEn7Dias/`: el juego. Se abre `AlcaldeEn7Dias.pde` en Processing.
+- En el PC del equipo, la copia de trabajo es `Processing/AlcaldeEn7Dias`. `Processing/AlcaldeDigitalNuevo` es el respaldo de la versión presentada y no se toca.
 - `fuentes-minijuegos/`: los sketches de Infiltrado y del mundo abierto.
 - `herramientas/`: scripts de Python (pruebas de color y bocetos del prólogo).
 - `docs/`: rediseño, guía de personajes, notas de desarrollo y capturas.
@@ -27,7 +28,7 @@ Alcalde en 7 Días: juego en Processing 4 (Java) para Estructura de Datos II, Un
 ## Compilar y probar sin pantalla
 
 ```
-Processing cli --sketch=juego/AlcaldeDigitalNuevo --output=/tmp/salida --force --build
+Processing cli --sketch=juego/AlcaldeEn7Dias --output=/tmp/salida --force --build
 xvfb-run -a -s "-screen 0 1920x1080x24" Processing cli --sketch=... --output=... --force --run
 ```
 

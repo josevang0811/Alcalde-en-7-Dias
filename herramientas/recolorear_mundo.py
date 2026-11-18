@@ -9,7 +9,7 @@
 #   - los amarillos y cremas pasan a ocre y piedra.
 #
 # Uso (desde la raíz del repositorio):
-#   python herramientas/recolorear_mundo.py arte/originales/mundo juego/AlcaldeDigitalNuevo/data/mundo 1.4
+#   python herramientas/recolorear_mundo.py arte/originales/mundo juego/AlcaldeEn7Dias/data/mundo 1.4
 # Siempre se parte de los originales (arte/originales/mundo): si se corre sobre
 # data/mundo, el cambio se aplica dos veces. El equipo eligió el nivel 1.4.
 # Si cambia el nivel, también hay que cambiar el background() de MundoAbierto

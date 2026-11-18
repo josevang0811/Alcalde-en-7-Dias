@@ -1,5 +1,5 @@
 // Ambiente — la corrección de color del mundo abierto (versión de prueba).
-// En el juego completo esto lo hace Ambiente.pde de AlcaldeDigitalNuevo,
+// En el juego completo esto lo hace Ambiente.pde de AlcaldeEn7Dias,
 // que además permite cambiarlo con F8 y lo guarda en data/ajustes.txt.
 // Aquí está apagado; con ambienteEnPrueba = true se usa el de noche.
 

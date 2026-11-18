@@ -13,7 +13,7 @@ Hoy Valeria es un dibujo de 20x20 pixeles agrandado a media pantalla, y por eso 
 
 ## Archivos del retrato
 
-Van en `juego/AlcaldeDigitalNuevo/data/retratos/`, en PNG con fondo transparente, todos del mismo tamaño y con la cabeza en el mismo lugar:
+Van en `juego/AlcaldeEn7Dias/data/retratos/`, en PNG con fondo transparente, todos del mismo tamaño y con la cabeza en el mismo lugar:
 
 | Archivo | Qué es |
 |---|---|

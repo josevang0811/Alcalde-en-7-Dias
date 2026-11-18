@@ -20,7 +20,7 @@ La idea es que el jugador aprenda a revisar una publicación antes de compartirl
 ## Cómo jugarlo
 
 1. Instala [Processing 4](https://processing.org/download) (probado con 4.3 y 4.5).
-2. Abre `juego/AlcaldeDigitalNuevo/AlcaldeDigitalNuevo.pde`.
+2. Abre `juego/AlcaldeEn7Dias/AlcaldeEn7Dias.pde`.
 3. Dale a **Ejecutar**. No hace falta instalar librerías: el juego usa solo Processing y Java.
 
 El juego abre en pantalla completa. Esc cierra la ventana que esté abierta y, en la oficina, vuelve al menú.
@@ -29,7 +29,7 @@ Al empezar la primera campaña sale el **prólogo** (unos 25 segundos; se salta 
 
 ### Valeria y las voces (opcional)
 
-El juego funciona sin conexión. Las frases de Valeria y la periodista ya vienen grabadas en `data/voz/`. Si quieres que Valeria genere frases nuevas con IA o que se graben voces nuevas, copia `juego/AlcaldeDigitalNuevo/data/valeria_ejemplo.txt` como `valeria.txt` y pon tus propias claves. Ese archivo está en el `.gitignore` y **nunca se debe subir**.
+El juego funciona sin conexión. Las frases de Valeria y la periodista ya vienen grabadas en `data/voz/`. Si quieres que Valeria genere frases nuevas con IA o que se graben voces nuevas, copia `juego/AlcaldeEn7Dias/data/valeria_ejemplo.txt` como `valeria.txt` y pon tus propias claves. Ese archivo está en el `.gitignore` y **nunca se debe subir**.
 
 ### Música
 
@@ -51,7 +51,7 @@ También hay **multijugador en red local** (o con Radmin VPN / Tailscale): uno c
 
 ## Estructuras de datos
 
-Lo central del curso está en estas clases de `juego/AlcaldeDigitalNuevo/`:
+Lo central del curso está en estas clases de `juego/AlcaldeEn7Dias/`:
 
 | Estructura | Archivo | Para qué se usa |
 |---|---|---|
@@ -68,7 +68,7 @@ Lo central del curso está en estas clases de `juego/AlcaldeDigitalNuevo/`:
 ```
 .
 ├── juego/
-│   └── AlcaldeDigitalNuevo/        El juego completo (lo que se abre en Processing)
+│   └── AlcaldeEn7Dias/        El juego completo (lo que se abre en Processing)
 │       ├── *.java                  Lógica y estructuras de datos
 │       ├── *.pde                   Pantallas, dibujo y animaciones
 │       └── data/                   Imágenes, sonidos, voces, mapa y mundo abierto
@@ -89,7 +89,7 @@ Lo central del curso está en estas clases de `juego/AlcaldeDigitalNuevo/`:
 
 | Archivo | Contenido |
 |---|---|
-| `AlcaldeDigitalNuevo.pde` | Punto de entrada: máquina de estados, colores, fuentes y tamaños. |
+| `AlcaldeEn7Dias.pde` | Punto de entrada: máquina de estados, colores, fuentes y tamaños. |
 | `Partida.java` | El estado de la campaña: turno, apoyo por barrio, credibilidad, alcance y huella digital. |
 | `Noticia.java`, `Noticiero.java` | Las noticias de Civitas y el mazo que las reparte. |
 | `Influencer.java`, `Tarjeta.java` | Las seis tarjetas de cada turno y cuánto vale cada una según la noticia. |
@@ -117,11 +117,11 @@ Lo central del curso está en estas clases de `juego/AlcaldeDigitalNuevo/`:
 `Infiltrado.pde` y `MundoAbierto.pde` **no se editan a mano**. Se generan a partir de los sketches de `fuentes-minijuegos/` con:
 
 ```
-python fuentes-minijuegos/MundoAbiertoPrueba/herramientas/fusionar.py fuentes-minijuegos/InfiltradoPrueba juego/AlcaldeDigitalNuevo
-python fuentes-minijuegos/MundoAbiertoPrueba/herramientas/fusionar.py fuentes-minijuegos/MundoAbiertoPrueba juego/AlcaldeDigitalNuevo
+python fuentes-minijuegos/MundoAbiertoPrueba/herramientas/fusionar.py fuentes-minijuegos/InfiltradoPrueba juego/AlcaldeEn7Dias
+python fuentes-minijuegos/MundoAbiertoPrueba/herramientas/fusionar.py fuentes-minijuegos/MundoAbiertoPrueba juego/AlcaldeEn7Dias
 ```
 
-Los sketches de `fuentes-minijuegos/` usan las imágenes y sonidos de `juego/AlcaldeDigitalNuevo/data/`. Para correrlos solos, copia esa carpeta `data` dentro de cada uno.
+Los sketches de `fuentes-minijuegos/` usan las imágenes y sonidos de `juego/AlcaldeEn7Dias/data/`. Para correrlos solos, copia esa carpeta `data` dentro de cada uno.
 
 ---
 

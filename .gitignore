@@ -4,10 +4,10 @@ valeria.txt
 *.env
 
 # Música que no es nuestra (uso privado). El juego usa data/musica_respaldo/.
-juego/AlcaldeDigitalNuevo/data/musica/*.wav
-juego/AlcaldeDigitalNuevo/data/musica/*.mp3
-juego/AlcaldeDigitalNuevo/data/musica/*.ogg
-juego/AlcaldeDigitalNuevo/data/musica/creditos.txt
+juego/AlcaldeEn7Dias/data/musica/*.wav
+juego/AlcaldeEn7Dias/data/musica/*.mp3
+juego/AlcaldeEn7Dias/data/musica/*.ogg
+juego/AlcaldeEn7Dias/data/musica/creditos.txt
 *.mp3
 
 # Archivos que genera el juego o Processing al correr

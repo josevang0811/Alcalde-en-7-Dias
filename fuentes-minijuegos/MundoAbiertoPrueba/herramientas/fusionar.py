@@ -1,7 +1,7 @@
 # Mete el sketch InfiltradoPrueba dentro de Alcalde Digital como una sola
 # clase (Infiltrado.pde). Todo lo de la mision queda adentro de la clase, asi
 # sus variables y funciones no chocan con las del juego principal.
-# Uso: python3 fusionar.py <carpeta del sketch> <carpeta AlcaldeDigitalNuevo>
+# Uso: python3 fusionar.py <carpeta del sketch> <carpeta AlcaldeEn7Dias>
 # Sirve para InfiltradoPrueba (clase Infiltrado) y MundoAbiertoPrueba (clase MundoAbierto).
 import os, re, sys, shutil
 src, dst = sys.argv[1], sys.argv[2]
