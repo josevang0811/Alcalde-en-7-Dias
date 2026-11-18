@@ -74,7 +74,7 @@ Los dibujos del mundo abierto tienen una paleta más profunda que la original: v
 
 ### Tinte opcional
 
-La ciudad se dibuja con colores normales y el juego la tiñe al final con un shader (`Ambiente.pde`). Por eso no hace falta redibujar el mundo para que se vea más oscuro.
+Además de la paleta, el juego puede teñir la pantalla con un shader (`Ambiente.pde`). Viene apagado; sirve para escenas puntuales, como una noche.
 
 ![Los cuatro ambientes sobre el parque](img/ambientes.jpg)
 
