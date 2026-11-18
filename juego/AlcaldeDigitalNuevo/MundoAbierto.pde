@@ -79,7 +79,7 @@ void dibujar() {
   camY += (objY - camY) * min(1, dt * 8);
   limitarCamara();
 
-  background(150, 196, 226);
+  background(89, 132, 159);   // el fondo, con la misma paleta profunda de data/mundo
   dibujarCiudad();
   aplicarAmbiente();   // corrección de color, antes del HUD (Ambiente.pde)
   dibujarHud();

@@ -72,7 +72,8 @@ Lo central del curso está en estas clases de `juego/AlcaldeDigitalNuevo/`:
 │       ├── *.java                  Lógica y estructuras de datos
 │       ├── *.pde                   Pantallas, dibujo y animaciones
 │       └── data/                   Imágenes, sonidos, voces, mapa y mundo abierto
-├── herramientas/                   Pruebas de color del mundo abierto y bocetos del prólogo
+├── herramientas/                   Recolorear el mundo abierto, pruebas de color y bocetos del prólogo
+├── arte/originales/                Dibujos originales del equipo (antes de recolorear)
 ├── fuentes-minijuegos/
 │   ├── InfiltradoPrueba/           Código fuente de la misión Infiltrado
 │   └── MundoAbiertoPrueba/         Código fuente del parque y la ciudad

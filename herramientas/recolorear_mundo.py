@@ -8,7 +8,12 @@
 #   - los verdes amarillentos (pasto "Stardew") pasan a verde bosque;
 #   - los amarillos y cremas pasan a ocre y piedra.
 #
-# Uso: python recolorear_mundo.py <carpeta data/mundo original> <carpeta de salida>
+# Uso (desde la raíz del repositorio):
+#   python herramientas/recolorear_mundo.py arte/originales/mundo juego/AlcaldeDigitalNuevo/data/mundo 1.4
+# Siempre se parte de los originales (arte/originales/mundo): si se corre sobre
+# data/mundo, el cambio se aplica dos veces. El equipo eligió el nivel 1.4.
+# Si cambia el nivel, también hay que cambiar el background() de MundoAbierto
+# (el script lo imprime al final).
 # choques.png y zonas.png no se tocan: son mapas de datos, no dibujos.
 import os, sys, numpy as np
 

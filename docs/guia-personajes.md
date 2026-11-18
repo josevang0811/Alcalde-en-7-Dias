@@ -70,6 +70,10 @@ Esto dura 5,6 segundos y Mateo aparece a los 1,2. La cámara va de cerca a lejos
 
 ## Color del mundo abierto
 
+Los dibujos del mundo abierto tienen una paleta más profunda que la original: verde bosque en vez de verde lima, piedra en vez de crema, ladrillo oscuro, sombras que tiran a azul. Sale de `herramientas/recolorear_mundo.py` (nivel 1.4) aplicado a los originales de `arte/originales/mundo/`. Si se dibuja algo nuevo para el mundo, se guarda en esa carpeta con sus colores normales y se vuelve a correr el script; así queda igual al resto.
+
+### Tinte opcional
+
 La ciudad se dibuja con colores normales y el juego la tiñe al final con un shader (`Ambiente.pde`). Por eso no hace falta redibujar el mundo para que se vea más oscuro.
 
 ![Los cuatro ambientes sobre el parque](img/ambientes.jpg)
