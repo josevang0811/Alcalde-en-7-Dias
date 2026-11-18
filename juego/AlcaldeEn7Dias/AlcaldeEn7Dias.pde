@@ -437,6 +437,12 @@ void draw() {
         dibujarCinematica();
         return;
     }
+    // Acto 2 del caso: contener el bulo en la red de Civitas (Contencion.pde)
+    if (contencionActiva()) {
+        actualizarMusicaJuego();
+        dibujarContencion();
+        return;
+    }
     // Si a esta ronda le tocó la mision, mientras dura es lo unico que se ve.
     if (estado == MISION) {
         mision.dibujar();
@@ -482,6 +488,10 @@ void draw() {
 void mousePressed() {
     if (cinematicaActiva()) {
         return;   // en la cinemática el clic no hace nada (se salta con espacio)
+    }
+    if (contencionActiva()) {
+        clicContencion();
+        return;
     }
     // En el menu del cajon se responde siempre (nada de la oficina lo bloquea)
     if (enMenu && !saliendo && !camaraBajando && !camaraSubiendo) {
@@ -722,6 +732,18 @@ void keyPressed() {
         if (key == ' ' || key == ESC || key == ENTER || key == RETURN) {
             saltarCinematica();
         }
+        return;
+    }
+    if (contencionActiva()) {
+        if (key == ESC) {
+            key = 0;
+        }
+        teclaContencion();
+        return;
+    }
+    // F7 en la oficina: probar el acto 2 con el caso del día 1 (mientras se arma el ciclo completo)
+    if (key == CODED && keyCode == 118 && !enMenu && estado == MENU) {
+        empezarContencion("dia1");
         return;
     }
     if (estado == MISION) {

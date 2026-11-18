@@ -1,0 +1,75 @@
+# Caso del día 1 — el video del profesor Ramírez
+# Órdenes (una por línea; # es comentario):
+#   titulo <texto>              nombre del caso
+#   bulo <texto>                qué dice la publicación
+#   verdad <texto>              qué pasó en realidad
+#   leccion <texto>             la frase que queda al final
+#   ventaja <n>                 turnos que el bulo avanza antes de que el jugador actúe
+#   puntos <n>                  puntos de acción por turno
+#   turnos <n>                  turnos como máximo
+#   cartas <n>                  cartas de evidencia (vienen del acto 1)
+#   semilla <n>                 para que el azar sea siempre igual en este caso
+#   contagio <0..1>             qué tan fácil se contagia quien lo ve (se multiplica por su credulidad)
+#   cuenta <id> <tipo> <se lo cree 0..1> <x 0..1> <y 0..1> <nombre que se ve>
+#        tipos: persona, grupo, medio, influencer, bot
+#   seguidores <id> <id> <id> ...   los que siguen a la primera cuenta (a ellos les llega lo que publica)
+#   origen <id>                 quién lo publicó primero
+#   botconocido <id>            bot que se descubrió en la investigación
+
+titulo El video del profesor Ramírez
+bulo Un video muestra al profesor Ramírez empujando a un estudiante del Colegio Distrital.
+verdad El video está cortado: el estudiante empujó primero y el profesor solo los separó.
+leccion Un bulo se frena mejor en las cuentas que llegan a más gente, antes de que lo compartan.
+ventaja 1
+puntos 3
+turnos 8
+cartas 2
+semilla 11
+contagio 0.3
+
+cuenta origen   persona    1.00 0.10 0.16 @verdad_sin_filtro
+cuenta bot1     bot        1.00 0.06 0.40 @ana_92xx
+cuenta bot2     bot        1.00 0.21 0.33 @juli_k_77
+cuenta bot3     bot        1.00 0.11 0.60 @carlos00_
+cuenta titulares medio     0.95 0.37 0.13 @titulares_ya
+cuenta norte    medio      0.15 0.60 0.10 @noticias_del_norte
+cuenta chama    influencer 0.70 0.38 0.44 @la_chama_tv
+cuenta nico     influencer 0.35 0.62 0.46 @nico_viral
+cuenta g11b     grupo      0.80 0.84 0.22 Grupo 11B
+cuenta dani     persona    0.70 0.93 0.38 @dani_rojas
+cuenta sofi     persona    0.50 0.76 0.34 @sofi.m
+cuenta valen    persona    0.60 0.94 0.08 @valen.tt
+cuenta juanpa   persona    0.75 0.72 0.08 @juanpa_10
+cuenta padres   grupo      0.85 0.82 0.58 Padres del Colegio
+cuenta mamadani persona    0.70 0.95 0.68 @mama_de_dani
+cuenta ernesto  persona    0.45 0.70 0.74 @don_ernesto
+cuenta vecinos  grupo      0.80 0.46 0.78 Vecinos El Puerto
+cuenta rosa     persona    0.60 0.29 0.88 @tienda_dona_rosa
+cuenta luchito  persona    0.75 0.58 0.92 @luchito.p
+cuenta martag   persona    0.40 0.18 0.80 @marta_g
+cuenta profeana persona    0.20 0.33 0.64 @profe_ana
+
+seguidores origen    bot1 bot2 bot3 titulares
+seguidores bot1      chama luchito martag vecinos
+seguidores bot2      chama g11b juanpa
+seguidores bot3      rosa martag vecinos
+seguidores titulares chama padres vecinos ernesto norte
+seguidores norte     padres nico profeana
+seguidores chama     g11b dani sofi vecinos luchito rosa
+seguidores nico      sofi dani valen g11b
+seguidores g11b      dani sofi valen juanpa
+seguidores dani      mamadani g11b
+seguidores sofi      valen
+seguidores valen     juanpa
+seguidores juanpa    g11b
+seguidores padres    mamadani ernesto profeana
+seguidores mamadani  padres
+seguidores ernesto   vecinos
+seguidores vecinos   rosa luchito martag ernesto
+seguidores rosa      vecinos
+seguidores luchito   juanpa
+seguidores martag    profeana
+seguidores profeana  padres
+
+origen origen
+botconocido bot2
