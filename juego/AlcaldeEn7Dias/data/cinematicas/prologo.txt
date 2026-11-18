@@ -1,73 +1,120 @@
-# Prólogo — Andrés y Mateo (unos 25 segundos).
-# Los dibujos de data/cinematicas/prologo/ son bocetos: el equipo de diseño
-# los reemplaza por los definitivos con el mismo nombre y tamaño (320x180).
+# Prólogo — Andrés y Mateo (unos 31 segundos).
+# Dibujos de 480x270 en data/cinematicas/prologo/. Salieron de ilustraciones
+# generadas con IA (arte/originales/prologo/) pasadas a pixel art con
+# herramientas/pixelar.py; el equipo de diseño puede retocarlos con el mismo nombre.
 # Las órdenes están explicadas al principio de Cinematica.pde.
 
+lienzo 480 270
+
 # 0. Aviso de contenido
-plano 4200
+plano 3800
 fondo #000000
 rotulo AVISO|ESTA HISTORIA HABLA DE ACOSO EN REDES Y DE SUICIDIO.|SI NECESITAS HABLAR CON ALGUIEN: LÍNEA 192, OPCIÓN 4.
 fundido 300 500
 
-# 1. El cuarto de Andrés, de noche. El celular no para.
+# 1. El cuarto de Andrés, de noche. Llueve y el celular no para.
 plano 3600
-fondo #0a0a12
-capa prologo/cuarto.png 0 0
-camara 160 90 1.0 142 94 1.35
-sonido 500 sfx/aviso.wav
-sonido 1500 sfx/aviso.wav
-sonido 2400 sfx/aviso.wav
-fundido 800 150
+ajustar prologo/cuarto.png
+camara 240 135 1.0 212 138 1.3
+lluvia 70 279 0 416 131
+luz 200 141 46 #4f8dff 0.55
+destello 600
+destello 1700
+destello 2700
+sonido 600 sfx/aviso.wav
+sonido 1700 sfx/aviso.wav
+sonido 2700 sfx/aviso.wav
+ambiente cinematicas/sonidos/noche.wav
+fundido 900 120
 
 # 2. La pantalla: lo que publican de él
 plano 3600
-fondo #06060a
-capa prologo/celular_cerca.png 0 0
-camara 160 70 1.0 160 66 1.12
-globo 120 34 200 @ANONIMO: JAJA MÍRENLO
-globo 120 46 1000 TE ETIQUETARON EN UNA FOTO
-globo 120 58 1800 @LUCHO.P: DA PENA
-globo 120 70 2500 +1,2 MIL REACCIONES
+ajustar prologo/celular_cerca.png
+camara 236 128 1.0 236 120 1.15
+luz 236 128 110 #3f7fff 0.35
+globo 196 52 200 @ANONIMO: JAJA MÍRENLO
+globo 196 74 1000 TE ETIQUETARON EN UNA FOTO
+globo 196 96 1800 @LUCHO.P: DA PENA
+globo 196 118 2500 +1,2 MIL REACCIONES
+destello 200
+destello 1000
+destello 1800
+destello 2500
+sacudida 200 1.2
+sacudida 1000 1.2
+sacudida 1800 1.2
+sacudida 2500 1.2
 sonido 200 sfx/aviso.wav
 sonido 1000 sfx/aviso.wav
 sonido 1800 sfx/aviso.wav
 sonido 2500 sfx/aviso.wav
-fundido 100 250
+ambiente cinematicas/sonidos/angustia.wav
+fundido 100 150
 
-# 3. El balcón. Mateo llega a buscarlo para jugar.
-plano 5600
-fondo #1a1626
-capa prologo/balcon.png 0 0
-capa prologo/mateo_puerta.png 0 0 1200
-camara 200 108 1.15 150 100 1.0
-subtitulo 1600 Mateo|¿Jugamos?
-subtitulo 3000 Andrés|Mateo... no vivas la vida que yo viví.
-fundido 500 120
+# 3. Su cara: ya no está leyendo, solo mira
+plano 2800
+ajustar prologo/rostro.png
+camara 215 125 1.0 215 120 1.12
+lluvia 45 245 0 480 175
+luz 230 265 120 #3f7fff 0.45
+destello 1400
+sonido 1400 sfx/aviso.wav
+fundido 150 700
 
-# 4. Negro. Se oye el golpe.
-plano 1800
+# 4. El balcón al atardecer
+plano 3000
+ajustar prologo/balcon.png
+camara 200 150 1.2 240 135 1.0
+ambiente cinematicas/sonidos/atardecer.wav
+fundido 700 100
+
+# 5. Mateo llega a buscarlo para jugar
+plano 2600
+ajustar prologo/puerta_mateo.png
+camara 240 140 1.25 240 132 1.12
+luz 225 82 60 #ffb060 0.25
+subtitulo 700 Mateo|¿Jugamos?
+fundido 100 100
+
+# 6. Andrés no se voltea
+plano 3400
+ajustar prologo/balcon.png
+camara 161 140 1.6 161 138 1.85
+subtitulo 400 Andrés|Mateo... no vivas la vida que yo viví.
+fundido 100 0
+
+# 7. Negro. Se oye el golpe.
+plano 1700
 fondo #000000
-sonido 600 sfx_mundo/golpe.wav
+ambiente nada
+sonido 550 sfx_mundo/golpe.wav
 fundido 0 0
 
-# 5. El celular en el piso sigue recibiendo notificaciones
-plano 2800
-fondo #08080c
-capa prologo/celular_piso.png 0 0
-camara 165 140 1.4 165 140 1.6
-sonido 300 sfx/aviso.wav
-sonido 1500 sfx/aviso.wav
-fundido 300 900
+# 8. El celular en el piso sigue recibiendo notificaciones
+plano 3000
+ajustar prologo/celular_piso.png
+camara 210 140 1.1 210 140 1.25
+luz 210 142 100 #3f7fff 0.35
+destello 400
+destello 1700
+sacudida 400 1.5
+sacudida 1700 1.5
+sonido 400 sfx/aviso.wav
+sonido 1700 sfx/aviso.wav
+ambiente cinematicas/sonidos/noche.wav
+fundido 600 900
 
-# 6. El salto en el tiempo
+# 9. El salto en el tiempo
 plano 2200
 fondo #000000
+ambiente nada
 rotulo 25 AÑOS DESPUÉS
 fundido 200 400
 
-# 7. La oficina de campaña de Mateo
-plano 3800
-ajustar oficina_fondo.jpg
-camara 160 90 1.2 160 90 1.0
-subtitulo 500 |Mateo es candidato. Quiere que nadie más viva lo que vivió Andrés.
-fundido 700 600
+# 10. La oficina de campaña de Mateo
+plano 4200
+ajustar prologo/oficina_mateo.png
+camara 220 130 1.35 240 135 1.0
+ambiente cinematicas/sonidos/atardecer.wav
+subtitulo 600 |Mateo es candidato. Quiere que nadie más viva lo que vivió Andrés.
+fundido 800 700
