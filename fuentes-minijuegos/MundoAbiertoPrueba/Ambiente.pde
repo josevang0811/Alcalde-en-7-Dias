@@ -1,13 +1,15 @@
 // Ambiente — la corrección de color del mundo abierto (versión de prueba).
 // En el juego completo esto lo hace Ambiente.pde de AlcaldeDigitalNuevo,
 // que además permite cambiarlo con F8 y lo guarda en data/ajustes.txt.
-// Aquí siempre se usa el ambiente de noche.
+// Aquí está apagado; con ambienteEnPrueba = true se usa el de noche.
+
+boolean ambienteEnPrueba = false;
 
 PShader shaderPrueba;
 boolean ambientePruebaFallo = false;
 
 void aplicarAmbiente() {
-  if (ambientePruebaFallo) return;
+  if (ambientePruebaFallo || !ambienteEnPrueba) return;
   try {
     if (shaderPrueba == null) {
       shaderPrueba = loadShader("ambiente/ambiente.glsl");

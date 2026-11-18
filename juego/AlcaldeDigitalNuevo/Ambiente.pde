@@ -24,7 +24,7 @@ final float[][] AJUSTES_AMBIENTE = {
     {0.35, 0.26, 0.34, 0.62, 0.62, 0.72, 0.95, 0.85, 1.25, 0.45, 0.55, 0.60}
 };
 
-String ambienteMundo = "noche";
+String ambienteMundo = "ninguno";   // por defecto sin tinte: el color lo dan los dibujos
 PShader shaderAmbiente;
 boolean ambienteFallo = false;     // si el shader no compila, se sigue sin él
 
