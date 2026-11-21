@@ -28,18 +28,22 @@ class Informe {
     int cambioApoyo;
     String barrio;
     int credAntes, credDespues;
+    int apoyoAntes = -1, apoyoDespues = -1;   // el apoyo del barrio antes y después (para la gráfica)
 }
 
 Informe informeActual;          // el que se está mostrando o espera para mostrarse
 int momentoListoInforme = -1;   // desde cuándo se puede mostrar
 boolean informeVisto = true;
+Informe informeMedido;          // el último al que ya se le midió el alto
 
 boolean informeVisible() {
     if (informeActual == null || informeVisto || millis() < momentoListoInforme) {
         return false;
     }
     if (estado == CELULAR) {
-        return faseCelular == CEL_LISTO;
+        // en el encargo el informe espera a que el celular se queme (Encargo.pde)
+        return faseCelular == CEL_LISTO && !encargoCorriendo && !autodestruyendo()
+            && millis() - momentoEnviadoEncargo > 3000;   // después del letrero de "¡ENVIADO!"
     }
     return estado == MENU && !enMenu && !llamadaEnPantalla() && !camaraBajando && !camaraSubiendo;
 }
@@ -84,7 +88,7 @@ void informeDePublicacion(Publicacion p, Tarjeta tarjeta, Noticia n, String barr
     inf.pista = pistaDe(n);
     inf.comentarios = comentariosDe(p, n, accion);
     inf.leccion = leccionDe(p, n, accion);
-    mostrarInforme(inf, 2600);   // después de que llega y Nico contesta
+    mostrarInforme(inf, 1500);   // después de que llega y Nico contesta
 }
 
 // Qué delataba a la noticia: quién la publicó, lo que decían los
@@ -280,6 +284,15 @@ void dibujarInforme() {
         return;
     }
     Informe inf = informeActual;
+    // la primera vez se dibuja fuera de la pantalla solo para medir su alto:
+    // así no se ve un cuadro con el texto saliéndose del papel
+    if (informeMedido != inf) {
+        informeMedido = inf;
+        pushMatrix();
+        translate(width * 10, 0);
+        dibujarInforme();
+        popMatrix();
+    }
     float aparece = constrain((millis() - momentoListoInforme) / 300.0, 0, 1);
     noStroke();
     fill(0, 170 * aparece);
@@ -349,6 +362,13 @@ boolean clicEnInforme() {
 // ---------------------------------------------------------------------------
 // La credibilidad, siempre a la vista en la oficina
 // ---------------------------------------------------------------------------
+
+// Dónde termina, a la derecha, la barra de credibilidad
+float bordeDerechoCredibilidad() {
+    float k = max(1, round(camAlto / 300));
+    String texto = "CREDIBILIDAD " + partida.getCredibilidad();
+    return camX + 6 * k + (medirPixel(texto) + 10) * k + 60 * k;
+}
 
 void dibujarCredibilidad() {
     if (partida == null || enMenu || camaraBajando || camaraSubiendo || estado == MAPA) {

@@ -1,0 +1,161 @@
+# Prólogo — Andrés y Mateo (unos 55 segundos).
+# Dibujos de 480x270 en data/cinematicas/prologo/. Se hicieron en SpriteCook
+# tomando como referencia la oficina y los personajes del equipo (los
+# originales y sus ids están en arte/originales/prologo/). La cara de Andrés y
+# el celular en el piso no tienen dibujo propio: son acercamientos de la cámara
+# sobre el cuarto y el balcón. puerta_mateo_triste.png es el mismo pasillo con
+# la boca y la ceja de Mateo retocadas, para los primeros planos.
+# balcon_mira.png es el balcón con Andrés girando la cabeza hacia Mateo
+# (retocado a mano sobre balcon.png).
+# Las órdenes están explicadas al principio de Cinematica.pde.
+
+lienzo 480 270
+
+# 0. Aviso de contenido
+plano 3800
+fondo #000000
+rotulo AVISO|ESTA HISTORIA HABLA DE ACOSO EN REDES Y DE SUICIDIO.|SI NECESITAS HABLAR CON ALGUIEN: LÍNEA 192, OPCIÓN 4.
+fundido 300 500
+
+# 1. El cuarto de Andrés, de noche. Llueve y el celular no para.
+plano 3600
+ajustar prologo/cuarto.png
+camara 240 135 1.0 232 140 1.25
+lluvia 70 298 38 438 143
+luz 258 155 40 #4f8dff 0.55
+destello 600
+destello 1700
+destello 2700
+sonido 600 sfx/aviso.wav
+sonido 1700 sfx/aviso.wav
+sonido 2700 sfx/aviso.wav
+ambiente cinematicas/sonidos/noche.wav
+fundido 900 120
+
+# 2. La pantalla: lo que publican de él (los avisos van centrados entre los pulgares)
+plano 3600
+ajustar prologo/celular_cerca.png
+camara 240 135 1.0 240 132 1.12
+luz 240 135 110 #3f7fff 0.3
+globo 204 100 200 @ANONIMO: JAJA MÍRENLO
+globo 198 118 1000 TE ETIQUETARON EN UNA FOTO
+globo 212 136 1800 @LUCHO.P: DA PENA
+globo 208 154 2500 +1,2 MIL REACCIONES
+destello 200
+destello 1000
+destello 1800
+destello 2500
+sacudida 200 1.2
+sacudida 1000 1.2
+sacudida 1800 1.2
+sacudida 2500 1.2
+sonido 200 sfx/aviso.wav
+sonido 1000 sfx/aviso.wav
+sonido 1800 sfx/aviso.wav
+sonido 2500 sfx/aviso.wav
+ambiente cinematicas/sonidos/angustia.wav
+fundido 100 150
+
+# 2b. De cerca: lo que Andrés va bajando en Civitas. El feed (civitas_feed.png)
+# sube una tarjeta cada 2,7 s: la foto editada, los comentarios, una noticia
+# falsa sobre él, el grupo del salón y un mensaje directo. celular_marco.png
+# es celular_cerca.png con la pantalla transparente, para que los pulgares
+# queden encima. Las imágenes salen de hacer_feed.py.
+plano 13800
+fondo #0a0d16
+deslizar prologo/civitas_feed.png 167 109 0.25 61 2700 450
+deslizar prologo/civitas_barra.png 167 100 0.25 9 100000 1
+ajustar prologo/celular_marco.png
+camara 240 134 2.0 240 136 2.2
+luz 240 135 90 #3f7fff 0.15
+destello 1500
+destello 6600
+destello 11500
+sacudida 1500 0.5
+sacudida 6600 0.5
+sacudida 11500 0.5
+sonido 1500 sfx/aviso.wav
+sonido 6600 sfx/aviso.wav
+sonido 11500 sfx/aviso.wav
+fundido 150 300
+
+# 3. Su cara: ya no está leyendo, solo mira
+plano 2800
+ajustar prologo/cuarto.png
+camara 238 112 2.6 238 110 2.9
+luz 258 150 40 #3f7fff 0.45
+destello 1400
+sonido 1400 sfx/aviso.wav
+fundido 150 700
+
+# 4. El balcón al atardecer
+plano 3000
+ajustar prologo/balcon.png
+camara 240 150 1.2 240 135 1.0
+ambiente cinematicas/sonidos/atardecer.wav
+fundido 700 100
+
+# 5. Mateo llega a buscarlo para jugar
+plano 2600
+ajustar prologo/puerta_mateo.png
+camara 220 150 1.15 200 155 1.35
+luz 335 120 70 #ffb060 0.25
+subtitulo 700 Mateo|¿Jugamos?
+fundido 100 100
+
+# 6. Andrés no contesta
+plano 1800
+ajustar prologo/balcon.png
+camara 240 128 1.7 240 126 1.8
+fundido 100 0
+
+# 7. Mateo entiende que algo está mal
+plano 3000
+ajustar prologo/puerta_mateo_triste.png
+camara 163 162 3.0 163 158 3.4
+subtitulo 500 Mateo|Andrés... ¿qué haces, hermano?
+fundido 100 0
+
+# 8. Andrés le habla sin dejar el balcón
+plano 4200
+ajustar prologo/balcon.png
+camara 240 118 2.0 240 108 2.6
+subtitulo 300 Andrés|Ellos solo escribían, Mateo. Nunca vieron el daño que hacían.
+fundido 100 0
+
+# 9. Andrés se voltea y lo mira para decirle lo último
+plano 3800
+ajustar prologo/balcon.png
+ajustar prologo/balcon_mira.png 500 fundir
+camara 240 116 2.0 240 110 2.4
+subtitulo 1100 Andrés|No vivas la vida que yo viví.
+fundido 0 0
+
+# 10. Negro. Se oye el golpe (golpe_seco.wav: grave y apagado, como oído desde adentro).
+plano 1700
+fondo #000000
+ambiente nada
+sonido 550 cinematicas/sonidos/golpe_seco.wav
+fundido 0 0
+
+# 11. El celular en el piso sigue recibiendo notificaciones (Andrés ya no está en el cuadro)
+plano 3000
+ajustar prologo/balcon.png
+camara 122 226 3.0 126 230 3.4
+luz 152 242 30 #3f7fff 0.45
+destello 400
+destello 1700
+sacudida 400 0.6
+sacudida 1700 0.6
+sonido 400 sfx/aviso.wav
+sonido 1700 sfx/aviso.wav
+ambiente cinematicas/sonidos/noche.wav
+fundido 600 900
+
+# 12. El salto en el tiempo; de aquí se pasa a la oficina de campaña
+plano 5200
+fondo #000000
+ambiente nada
+rotulo 25 AÑOS DESPUÉS
+subtitulo 1600 |Mateo es candidato. Quiere que nadie más viva lo que vivió Andrés.
+fundido 200 900

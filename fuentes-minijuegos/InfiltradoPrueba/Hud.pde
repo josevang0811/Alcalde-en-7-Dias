@@ -20,7 +20,7 @@ void dibujarHud(float dt) {
     rect(0, 0, width, height);
   }
 
-  if (estado == INICIO || estado == ELEGIR_ROL || estado == CREDITOS || estado == LLAMADA) return;
+  if (estado == INICIO || estado == CREDITOS || estado == LLAMADA) return;
   if (estado == RECONOCIMIENTO) {
     dibujarHudReconocimiento();
     return;
@@ -44,13 +44,16 @@ void dibujarHudReconocimiento() {
   float x = width / 2 - w / 2;
   float y = 14 * e;
   panel(x, y, w, 100 * e);
-  textAlign(CENTER, TOP);
-  textFont(letraGrande);
+  // Valeria, con su cara, explica la ruta
+  if (caraValeria != null) image(caraValeria, x + 14 * e, y + 12 * e, 46 * e, 46 * e);
+  textAlign(LEFT, TOP);
+  textFont(letraMedia);
   fill(NEON_MAGENTA);
-  text("RECONOCIMIENTO", width / 2, y + 10 * e);
+  text("VALERIA", x + 72 * e, y + 10 * e);
   textFont(letraChica);
-  fill(215);
-  text("Estudia las rondas, las cámaras, las tarjetas y los ductos. Adentro ya no se dibujan las rutas.", width / 2, y + 42 * e);
+  fill(225);
+  text(TEXTO_RUTA_VALERIA, x + 72 * e, y + 30 * e, w - 90 * e, 34 * e);
+  textAlign(CENTER, TOP);
   // tiempo que queda
   float resto = max(0, tiempoReconocimiento) / tiempoReconocimientoTotal();
   noStroke();
@@ -63,7 +66,7 @@ void dibujarHudReconocimiento() {
 
   // Leyenda de colores abajo (sin nombres: una raya de color por cada ronda)
   textFont(letraChica);
-  String rondas = "Rondas de los vigilantes";
+  String rondas = "Rondas de los vigilantes · verde: tu ruta";
   String camara = "Zona que barre cada cámara";
   float rayas = vigilantes.size() * 14 * e;
   float total = rayas + 8 * e + textWidth(rondas) + 40 * e + 22 * e + 8 * e + textWidth(camara);
@@ -86,64 +89,6 @@ void dibujarHudReconocimiento() {
   text(camara, lx + 30 * e, ly);
 }
 
-void tarjetaJugador(Jugador j, float x, float y) {
-  float e = escala;
-  panel(x, y, 420 * e, 70 * e);
-  noStroke();
-  fill(j.ropa);
-  rect(x, y, 5 * e, 70 * e);
-  textFont(letraMedia);
-  textAlign(LEFT, TOP);
-  fill(235);
-  text("J" + j.numero + " " + NOMBRES_ROL[j.rol] + " · " + j.postura(), x + 14 * e, y + 8 * e);
-  textFont(letraChica);
-  textAlign(RIGHT, CENTER);
-  fill(j.botellas > 0 ? NEON_VERDE : color(110));
-  text("Botellas: " + j.botellas, x + 408 * e, y + 38 * e);
-  // habilidad del rol: lista o cuanto le falta
-  textAlign(LEFT, CENTER);
-  boolean lista = j.enfriamiento <= 0;
-  fill(lista ? (j.rol == ROL_HACKER ? NEON_CIAN : NEON_MAGENTA) : color(110));
-  text(j.teclaHabilidad() + ": " + (j.sombra > 0 ? "activa" : (lista ? "lista" : ceil(j.enfriamiento) + " s")), x + 226 * e, y + 38 * e);
-  // Mochila: kilos que lleva de los que caben
-  textFont(letraChica);
-  textAlign(RIGHT, TOP);
-  fill(j.peso >= CAPACIDAD_MOCHILA ? COLOR_AMBAR : color(200));
-  text("Mochila " + j.peso + "/" + CAPACIDAD_MOCHILA + " kg", x + 408 * e, y + 10 * e);
-  // Ruido: 10 rayitas, se llenan segun hasta donde se oyen los pasos
-  textFont(letraChica);
-  textAlign(LEFT, CENTER);
-  fill(160);
-  text("Ruido", x + 14 * e, y + 38 * e);
-  int llenas = min(10, round(j.radioRuido() / 3.7 * 10));
-  for (int k = 0; k < 10; k++) {
-    if (k < llenas) fill(k < 4 ? NEON_VERDE : (k < 7 ? COLOR_AMBAR : COLOR_RIVAL));
-    else fill(35, 42, 66);
-    rect(x + 70 * e + k * 14 * e, y + 33 * e, 10 * e, 10 * e);
-  }
-  fill(130);
-  textAlign(LEFT, BOTTOM);
-  String controles = j.numero == 1 ? "WASD · Shift corre · C agacha · E usa · Q lanza · X suelta · F rol"
-    : "Flechas · - corre · . agacha · Enter · , lanza · K suelta · M rol";
-  text(controles, x + 14 * e, y + 66 * e);
-}
-
-void objetivo(float x, float y, boolean hecho, String texto) {
-  float e = escala;
-  stroke(hecho ? NEON_VERDE : color(130));
-  strokeWeight(1.5 * e);
-  noFill();
-  rect(x, y + 2 * e, 11 * e, 11 * e);
-  if (hecho) {
-    line(x + 2 * e, y + 8 * e, x + 5 * e, y + 11 * e);
-    line(x + 5 * e, y + 11 * e, x + 10 * e, y + 3 * e);
-  }
-  noStroke();
-  fill(hecho ? NEON_VERDE : color(220));
-  textAlign(LEFT, TOP);
-  text(texto, x + 18 * e, y);
-}
-
 // Panel de las ventanas y menus: el mismo marco del HUD en pixel art,
 // agrandado a la escala del arte
 void panel(float x, float y, float w, float h) {
@@ -158,11 +103,6 @@ void panel(float x, float y, float w, float h, color c) {
   marcoPixel(g, 0, 0, round(w / pixel) - 1, round(h / pixel) - 1, c);
   popMatrix();
   noStroke();
-}
-
-String reloj(float segundos) {
-  int s = floor(segundos);
-  return nf(s / 60, 2) + ":" + nf(s % 60, 2);
 }
 
 // ---------------------------------------------------------------------------
@@ -355,9 +295,4 @@ void dibujarVentana() {
   fill(130);
   textAlign(RIGHT, TOP);
   text("Muévete o presiona usar para cerrar", x + w - 20 * e, y + h - 22 * e);
-}
-
-// Nombre para el plano: el jefe se distingue de los vigilantes
-String nombreVigilante(int n) {
-  return vigilantes.get(n).esJefe ? "Jefe de seguridad" : "Vigilante " + (n + 1);
 }

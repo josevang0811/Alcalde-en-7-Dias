@@ -52,23 +52,6 @@ void textoPixel(PGraphics g, String t, float x, float y, color c, PFont f) {
   g.text(t, round(x), round(y));
 }
 
-void iconoTarjeta(PGraphics g, int x, int y, color c, boolean llena) {
-  g.noStroke();
-  if (llena) {
-    g.fill(c);
-    g.rect(x, y, 10, 7);
-    g.fill(242, 242, 233);
-    g.rect(x + 2, y + 2, 3, 2);
-  } else {
-    g.noFill();
-    g.stroke(c);
-    g.rect(x, y, 9, 6);
-    g.noStroke();
-    g.fill(c);
-    g.rect(x + 2, y + 2, 3, 2);
-  }
-}
-
 void iconoMochila(PGraphics g, int x, int y, color c) {
   g.noStroke();
   g.fill(c);
@@ -155,7 +138,7 @@ void dibujarHudPixel() {
   for (int k = 0; k < jugadores.size(); k++) tarjetaJugadorPixel(g, jugadores.get(k), 8 + k * 236, al - 62);
   if (jugadores.size() == 1) {
     g.textAlign(RIGHT, BOTTOM);
-    textoPixel(g, desdeCampana ? "G mapa · V rutas · R reiniciar la misión" : "G mapa · V rutas · R reiniciar · Esc salir", an - 8, al - 4, color(110, 118, 145), pixel8);
+    textoPixel(g, desdeCampana ? "G ver la ruta · R reiniciar la misión" : "G ver la ruta · R reiniciar · Esc salir", an - 8, al - 4, color(110, 118, 145), pixel8);
     g.textAlign(LEFT, TOP);
   }
 
@@ -174,13 +157,13 @@ void dibujarHudPixel() {
 
 // Con el servidor copiado: solo las salidas y lo que se lleva
 void dibujarPanelEscape(PGraphics g) {
-  marcoPixel(g, 8, 8, 236, 84, NEON_VERDE);
+  marcoPixel(g, 8, 8, 236, 60, NEON_VERDE);
   textoPixel(g, "ESCAPA", 15, 11, NEON_VERDE, pixel12);
   g.textAlign(RIGHT, TOP);
   textoPixel(g, horaTexto(), 229, 14, color(242, 242, 233), pixel8);
   g.textAlign(LEFT, TOP);
   String[] nombres = {"Camioneta (entrada)", "Moto (fondo del parqueadero)", "Ducto a la calle"};
-  for (int s = 0; s < 3; s++) {
+  for (int s = 0; s < 1; s++) {   // solo la de la ruta
     int y = 30 + s * 12;
     String b = bloqueoSalida(s);
     // "espera a tu compañero" no cuenta como bloqueo: la salida sirve
@@ -196,25 +179,38 @@ void dibujarPanelEscape(PGraphics g) {
       g.textAlign(LEFT, TOP);
     }
   }
-  int llevadas = 0;
-  for (Jugador j : jugadores) llevadas += j.valorBotin;
-  textoPixel(g, "Llevas " + llevadas + " puntos de botín", 16, 70, COLOR_AMBAR, pixel8);
+  textoPixel(g, "Sigue la ruta hasta la camioneta (G)", 16, 46, COLOR_AMBAR, pixel8);
 }
 
 void dibujarObjetivosPixel(PGraphics g) {
   // Objetivos
-  marcoPixel(g, 8, 8, 236, 100, NEON_CIAN);
-  textoPixel(g, "INFILTRADO", 15, 11, NEON_CIAN, pixel12);
+  marcoPixel(g, 8, 8, 236, 30 + paradasRuta.size() * 11 + 18, NEON_CIAN);
+  textoPixel(g, "TU RUTA", 15, 11, NEON_CIAN, pixel12);
   g.textAlign(RIGHT, TOP);
   textoPixel(g, horaTexto(), 229, 14, color(242, 242, 233), pixel8);
   g.textAlign(LEFT, TOP);
   int llevadas = 0;
   for (Jugador j : jugadores) llevadas += j.valorBotin;
-  // copiar el servidor va de ultimo: despues ya solo se escapa
-  boolean[] hechos = {llevadas >= mejorBotin, chatLeido, oportunidadesHechas() == 3, servidorCopiado};
-  String[] textos = {"Botín: " + llevadas + " (lo mejor que cabe: " + mejorBotin + ")",
-    "Extra: lee el chat del rival", "Extra: oportunidades " + oportunidadesHechas() + "/3", "Al final: copia el servidor"};
-  for (int k = 0; k < 4; k++) {
+  // solo la ruta: las tarjetas que hagan falta, el servidor y la salida
+  StringList lista = new StringList();
+  IntList hecho = new IntList();
+  for (int[] p : paradasRuta) {
+    if (p[2] >= 1 && p[2] <= 4) {
+      lista.append("Toma la " + nombreParada(p[2]).toLowerCase());
+      hecho.append(tarjetas[p[2]] ? 1 : 0);
+    }
+  }
+  lista.append("Copia el servidor");
+  hecho.append(servidorCopiado ? 1 : 0);
+  lista.append("Sal por la camioneta");
+  hecho.append(0);
+  boolean[] hechos = new boolean[lista.size()];
+  String[] textos = new String[lista.size()];
+  for (int k = 0; k < lista.size(); k++) {
+    hechos[k] = hecho.get(k) == 1;
+    textos[k] = (k + 1) + ". " + lista.get(k);
+  }
+  for (int k = 0; k < textos.length; k++) {
     int y = 30 + k * 11;
     color c = hechos[k] ? NEON_VERDE : color(242, 242, 233);
     g.noStroke();
@@ -229,45 +225,16 @@ void dibujarObjetivosPixel(PGraphics g) {
     }
     textoPixel(g, textos[k], 26, y - 2, c, pixel8);
   }
-  // barra de copia junto al ultimo objetivo
+  // barra de copia junto a "Copia el servidor"
   if (!servidorCopiado && progresoServidor > 0) {
+    int yb = 30 + (textos.length - 2) * 11 + 3;
     g.fill(35, 42, 72);
-    g.rect(170, 64, 58, 5);
+    g.rect(170, yb, 58, 5);
     g.fill(NEON_MAGENTA);
-    g.rect(170, 64, round(58 * progresoServidor), 5);
+    g.rect(170, yb, round(58 * progresoServidor), 5);
   }
-  // tarjetas
-  color[] colores = {0, COLOR_RIVAL, #3E7BFF, COLOR_AMBAR, NEON_CIAN};
-  String[] nombres = {"", "roja", "azul", "amar.", codigoConocido()};
-  for (int k = 1; k <= 4; k++) {
-    int x = 16 + (k - 1) * 56;
-    iconoTarjeta(g, x, 76, colores[k], tarjetas[k]);
-    textoPixel(g, nombres[k], x + 13, 74, tarjetas[k] ? color(242, 242, 233) : color(92, 103, 135), pixel8);
-  }
-  boolean[] alcanza = mapa.zonasAlcanzables(tarjetas);
-  int n = 0;
-  for (boolean b : alcanza) if (b) n++;
-  textoPixel(g, "Alcanzas " + n + " de " + alcanza.length + " cuartos", 16, 86, color(125, 139, 176), pixel8);
-
-  // Oportunidades (cuando ya se descubrio alguna)
-  boolean algunaVista = false;
-  for (boolean b : oportunidadVista) if (b) algunaVista = true;
-  if (algunaVista) {
-    marcoPixel(g, 8, 104, 236, 152, NEON_MAGENTA);
-    textoPixel(g, "OPORTUNIDADES " + oportunidadesHechas() + "/3", 15, 107, NEON_MAGENTA, pixel8);
-    for (int k = 0; k < 3; k++) {
-      int y = 119 + k * 10;
-      String t = oportunidadVista[k] ? NOMBRES_OPORTUNIDAD[k] : "??? (revisa la oficina)";
-      if (oportunidadVista[k] && !oportunidadHecha[k] && progresoOportunidad[k] > 0 && k != 1) t += " " + round(progresoOportunidad[k] * 100) + "%";
-      color c = oportunidadHecha[k] ? NEON_VERDE : (oportunidadVista[k] ? color(242, 242, 233) : color(92, 103, 135));
-      g.noStroke();
-      g.fill(c);
-      if (oportunidadHecha[k]) g.rect(16, y + 2, 5, 5);
-      else g.rect(17, y + 4, 3, 1);
-      textoPixel(g, t, 26, y - 1, c, pixel8);
-    }
-  }
-
+  textoPixel(g, "G: ver la ruta en el mapa", 16, 30 + textos.length * 11 + 4, color(125, 139, 176), pixel8);
+  // las oportunidades y el botín siguen en la sede, pero ya no se muestran
 }
 
 void dibujarEstadoPixel(PGraphics g, int an) {

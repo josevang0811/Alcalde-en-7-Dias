@@ -29,8 +29,8 @@ final int CEL_LISTO = 2;      // ya llego: se ve el resultado
 int faseCelular = CEL_ELIGIENDO;
 
 final int ESPERA_ESCRIBIENDO = 900;  // "escribiendo..." antes de cada respuesta
-final int MS_POR_MINUTO = 170;       // velocidad del viaje: milisegundos por minuto de calle
-final int VIAJE_MINIMO = 1100;
+final int MS_POR_MINUTO = 90;        // velocidad del viaje: milisegundos por minuto de calle
+final int VIAJE_MINIMO = 700;
 final int DURACION_FESTEJO = 2200;   // ondas y "+30" sobre el barrio al llegar
 
 int tarjetaElegida = -1;  // posicion en la lista de tarjetas del turno, o -1
@@ -155,6 +155,7 @@ void reiniciarCelular() {
     reaccionSonada = false;
     usarTransmision = false;
     envioCamino = null;
+    reiniciarEncargo();   // Encargo.pde
 }
 
 void abrirCelular() {
@@ -170,7 +171,7 @@ boolean celularDisponible() {
     if (modoApoyo()) {
         return true;   // el influencer escribe por el apoyo del evento del parque
     }
-    return !partidaTerminada() && faseLlamada == LLAMADA_ATENDIDA && !esRondaEspecial();
+    return !partidaTerminada() && faseLlamada == LLAMADA_ATENDIDA && !esRondaEspecial() && !celularDestruido;
 }
 
 boolean introLista() {
@@ -265,6 +266,10 @@ void enviarPublicacion() {
     faseCelular = CEL_VIAJANDO;
     textoAviso = null;
     sonidos.tocarEnvio();
+    // para las gráficas del informe (Impacto.pde)
+    informeActual.apoyoAntes = apoyoAntes[barrioElegido];
+    informeActual.apoyoDespues = partida.getApoyo(barrioElegido);
+    alEnviarEnEncargo();   // si era el encargo, el mensaje se autodestruye (Encargo.pde)
 }
 
 // Mientras la publicacion viaja, los barrios siguen mostrando el apoyo y el
@@ -427,6 +432,9 @@ ArrayList<Mensaje> mensajesDelChat() {
     // Nico no repite la noticia: el jugador tiene que acordarse de lo que
     // conto la periodista. Solo despues de publicar se le muestra completa.
     lista.add(new Mensaje("¡Hola, jefe! ¿Oíste lo que contó " + Noticiero.PERIODISTA + " por teléfono?", null, false));
+    // Los comentarios de la publicación ya no los dice la periodista (la
+    // llamada es corta): los cuenta Nico. Y hay que decidir rápido.
+    lista.add(new Mensaje("Ya la vi en Civitas. En los comentarios, " + partida.getNoticiaDelTurno().getComentarios() + ".", null, false));
     if (faseCelular == CEL_ELIGIENDO) {
         lista.add(new Mensaje("¿Qué hacemos con esa noticia? Elige una tarjeta y en el mapa el barrio donde la publico.", null, false));
         return lista;
@@ -1144,27 +1152,6 @@ void dibujarPin(float cx, float yPunta, float r) {
     ellipse(cx, yPunta - r * 1.5, r * 0.55, r * 0.55);
 }
 
-// Barrita de apoyo de 0 a 100, con una rayita blanca en 50 (donde el barrio
-// se vuelve propio).
-void dibujarBarraApoyo(float cx, float y, float ancho, int valor, boolean visible) {
-    float alto = max(5, 7 * escala);
-    float x = cx - ancho / 2;
-    stroke(COLOR_CALLE_TV);
-    strokeWeight(1);
-    fill(COLOR_NEGRO, visible ? 160 : 70);
-    rect(x, y, ancho, alto, alto / 2);
-    noStroke();
-    fill(COLOR_ROJO, visible ? 255 : 120);
-    float lleno = ancho * valor / (float) Partida.TOPE_APOYO;
-    if (lleno > 0) {
-        rect(x, y, max(lleno, alto), alto, alto / 2);
-    }
-    stroke(COLOR_BLANCO, visible ? 220 : 90);
-    strokeWeight(1.5);
-    float xUmbral = x + ancho * Partida.UMBRAL_CONQUISTA / (float) Partida.TOPE_APOYO;
-    line(xUmbral, y - 2, xUmbral, y + alto + 2);
-}
-
 // Al llegar la publicacion: ondas que salen del barrio y el cambio de apoyo
 // subiendo; si se conquisto, un letrero mas grande.
 void dibujarFestejo() {
@@ -1285,6 +1272,13 @@ void clicEnCelular() {
     if (faseCelular == CEL_LISTO && botonCuadernoCelular.contiene(mouseX, mouseY)) {
         irA(ARBOL);
         cuadernoYaAbierto = true;
+        return;
+    }
+    // un clic fuera del celular y del mapa lo cierra
+    boolean enCelular = mouseX >= celX && mouseX <= celX + celAncho && mouseY >= celY && mouseY <= celY + celAlto;
+    boolean enMapa = mouseX >= mapaPanelX && mouseX <= mapaPanelX + mapaPanelAncho && mouseY >= mapaPanelY && mouseY <= mapaPanelY + mapaPanelAlto;
+    if (!enCelular && !enMapa) {
+        irA(MENU);
         return;
     }
     if (faseCelular != CEL_ELIGIENDO) {

@@ -204,19 +204,6 @@ public class ArbolHabilidades {
         return suma;
     }
 
-    // Dice en cual de las ramas principales esta un nodo: devuelve la
-    // posicion (0, 1 o 2) del hijo de la raiz cuyo subarbol lo contiene, o
-    // -1 si el nodo es la raiz misma. La interfaz lo usa para pintar cada
-    // habilidad con el color de su rama. Reutiliza buscarRec() empezando
-    // desde cada rama en vez de desde la raiz.
-    public int indiceRama(Nodo n) {
-        ArrayList<Nodo> ramas = raiz.getHijos();
-        for (int i = 0; i < ramas.size(); i++) {
-            if (buscarRec(ramas.get(i), n.getNombre()) != null) return i;
-        }
-        return -1;
-    }
-
     // Caso base: una hoja tiene altura 1 (se cuenta a si misma, no tiene
     // subarboles debajo). Para un nodo con hijos, la altura es 1 mas la
     // altura mas grande entre sus hijos: siempre importa la rama mas

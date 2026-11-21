@@ -33,22 +33,11 @@ int estado;
 // azul y contornos negros gruesos.
 
 color COLOR_CONTORNO = #1A1A1A;
-color COLOR_PARED = #EFE4B0;
-color COLOR_PARED_LATERAL = #E4D69E;
-color COLOR_PISO = #FFC90E;
-color COLOR_PISO_SOMBRA = #EDB300;
-color COLOR_MADERA = #B97A57;
-color COLOR_MADERA_CLARA = #C98D69;
-color COLOR_MADERA_OSCURA = #8E5A3C;
-color COLOR_MADERA_VETA = #A76C4B;
 color COLOR_ROJO = #ED1C24;
 color COLOR_ROJO_OSCURO = #B0141A;
 color COLOR_AZUL = #00A2E8;
 color COLOR_AZUL_CLARO = #99D9EA;
 color COLOR_AZUL_OSCURO = #005E8C;
-color COLOR_AZUL_GRIS = #7092BE;
-color COLOR_PANTALLA = #0E2436;   // fondo oscuro del televisor
-color COLOR_CALLE_TV = #3E6A8F;   // calles del grafo en el televisor
 color COLOR_VERDE = #22B14C;
 color COLOR_VERDE_LIMA = #B5E61D;
 color COLOR_ROSADO = #FFAEC9;
@@ -63,7 +52,6 @@ color COLOR_NEGRO = #000000;
 
 color COLOR_PAPEL = #FFFDF4;
 color COLOR_POSTIT = #FFF38A;
-color COLOR_RENGLON = #C5E8F3;
 color COLOR_MARGEN = #F28B8B;
 color COLOR_TINTA = #2F3BB5;  // tinta azul de esfero, para lo "escrito a mano"
 
@@ -73,7 +61,6 @@ color COLOR_TEXTO_CLARO = #FFFFFF;
 color COLOR_TEXTO_CREMA = #FFF3D6;
 color COLOR_EXITO = #178A38;
 color COLOR_ERROR = #D7141A;
-color COLOR_AVISO = #C25A00;
 
 color COLOR_BOTON = #FFF6D8;
 color COLOR_BOTON_HOVER = #FFC90E;
@@ -81,32 +68,17 @@ color COLOR_BOTON_TEXTO = #1A1A1A;
 
 color COLOR_TARJETA = #CDEFF8;  // tarjetas del celular, sobre la pantalla azul
 
-color COLOR_RAIZ = #FFC90E;
-color COLOR_MONEDA = #FFC90E;
 color COLOR_BLOQUEADA = #E8E8E8;
-color COLOR_BRILLO = #FFF200;
-
-// El arbol dibujado del cuaderno (Cuaderno.pde).
-color COLOR_TRONCO = #B97A57;
-color COLOR_TRONCO_OSCURO = #8E5A3C;
-color COLOR_FOLLAJE = #1E6B30;
-color COLOR_FOLLAJE_CLARO = #2E8B41;
-color COLOR_PASTO = #22B14C;
-color COLOR_DORADO_CLARO = #E9D98B;  // habilidad desbloqueada
-color COLOR_DORADO_OSCURO = #7A6A1E; // su candado abierto
 
 // Colores con transparencia: el cuarto numero es la opacidad (0 a 255).
 color COLOR_SOMBRA = color(0, 0, 0, 55);
 color COLOR_VELO = color(12, 16, 30, 175);
-color COLOR_VELO_PORTADA = color(12, 16, 30, 205);
 color COLOR_CINTA = color(255, 255, 255, 150);
 
 // Las tres ramas del arbol, en el mismo orden en que ArbolHabilidades las
 // cuelga de la raiz (Alcance, Credibilidad, IA). El color fuerte es el del
-// anillo de cada habilidad y el de las barras y etiquetas; el claro, el del
-// arbolito dibujado en la tapa del cuaderno de la oficina.
+// anillo de cada habilidad y el de las barras y etiquetas.
 String[] NOMBRES_RAMA = {"Alcance", "Credibilidad", "IA"};
-color[] COLORES_RAMA = {COLOR_AZUL_CLARO, COLOR_VERDE_LIMA, COLOR_ROSADO};
 color[] COLORES_RAMA_FUERTE = {COLOR_AZUL, COLOR_VERDE, COLOR_ROJO};
 
 // ===========================================================================
@@ -171,13 +143,10 @@ Partida partida;
 Sonidos sonidos;
 
 Boton botonVolverMenu;
-Boton botonPasarTurno;
 Boton botonVolverAyuda;
-Boton botonVolverMapa;
 Boton botonVolverCelular;
 Boton botonCuadernoCelular;
 Boton botonNuevaPartida;
-Boton botonFinOficina;
 
 // Los objetos de la oficina con los que se puede interactuar. Se guardan por
 // separado (para saber que hacer con cada clic) y tambien en una lista (para
@@ -203,16 +172,13 @@ final int DURACION_SACUDIDA = 420;   // un nodo que no se puede comprar se sacud
 final int DURACION_CANDADO = 1100;   // candado sobre un objeto de la oficina que no funciona aun
 final int DURACION_FLOTANTE = 1100;  // el "+3" / "-2" que sube junto a los puntos
 final int DURACION_AVISO = 2800;     // mensajes cortos en la parte de abajo
-final int DURACION_FUNDIDO = 450;    // la portada se desvanece
 final int DURACION_SALIDA = 1000;    // la puerta se abre y todo se oscurece
-final int DURACION_TITULAR = 5200;   // cada titular del noticiero de la TV
 
 // Nodo que muestra el panel lateral: el ultimo sobre el que paso o hizo
 // clic el mouse (null hasta el primer hover, para mostrar una bienvenida).
 Nodo nodoSeleccionado;
 Nodo nodoBajoMouse;
 Nodo nodoAnimado;
-Boton botonDesbloquear;  // se crea cuando la habilidad elegida se puede comprar
 int momentoAnimacion;
 boolean animacionExitosa;
 
@@ -220,15 +186,7 @@ ObjetoOficina objetoResaltado;
 ObjetoOficina objetoConCandado;
 int momentoCandado;
 
-// "Fotos" de las partes que no se mueven de cada pantalla (ver
-// pantallaMenu() en Interfaz.pde). null significa que hay que volver a
-// dibujarla y tomarla de nuevo.
-PImage fotoOficina;
-PImage fotoCuaderno;
-PImage fotoAyuda;
-
 boolean mostrarPortada = true;
-int momentoFinPortada = -100000;
 boolean cuadernoYaAbierto = false;
 boolean saliendo = false;
 int momentoSalida;
@@ -317,7 +275,8 @@ void calcularLayoutTarjetas() {
         + tx(17, 13) * 2.1 + tx(14, 10)
         + tx(14, 11) * 1.5 + tx(30, 20) * 1.5 + tx(15, 12) * 2.1 + tx(14, 10)
         + altoProgreso() + tx(8, 6)
-        + tx(15, 12) * 1.5;
+        + tx(15, 12) * 1.5
+        + tx(14, 11) * 1.3 * 5;   // el párrafo de la huella digital (Interfaz.pde)
     tarjetaAncho = min(width * 0.56, 780 * escala);
     tarjetaAlto = min(height * 0.92, margenTarjeta() * 2 + altoContenido + altoBotonTarjeta() * 1.5);
     tarjetaX = (width - tarjetaAncho) / 2;
@@ -360,22 +319,16 @@ void crearBotones() {
     float anchoVolver = constrain(width * 0.11, 130, 210);
     botonVolverMenu = new Boton(width * 0.015, yBoton, anchoVolver, altoBoton, "← Oficina");
     botonVolverAyuda = new Boton(width * 0.015, yBoton, anchoVolver, altoBoton, "← Oficina");
-    botonVolverMapa = new Boton(width * 0.015, yBoton, anchoVolver, altoBoton, "← Oficina");
     botonVolverCelular = new Boton(width * 0.015, yBoton, anchoVolver, altoBoton, "← Oficina");
 
-    float anchoPasarTurno = constrain(width * 0.13, 160, 250);
-    botonPasarTurno = new Boton(width - anchoPasarTurno - width * 0.015, yBoton,
-        anchoPasarTurno, altoBoton, "Pasar turno");
-    botonCuadernoCelular = new Boton(width - anchoPasarTurno - width * 0.015, yBoton,
-        anchoPasarTurno, altoBoton, "Ir al cuaderno →");
+    float anchoDerecho = constrain(width * 0.13, 160, 250);
+    botonCuadernoCelular = new Boton(width - anchoDerecho - width * 0.015, yBoton,
+        anchoDerecho, altoBoton, "Ir al cuaderno →");
 
-    float anchoTarjetaBoton = tarjetaAncho * 0.36;
     float yTarjetaBoton = tarjetaY + tarjetaAlto - altoBotonTarjeta() - margenTarjeta();
     // al terminar la campaña solo queda volver al menú principal
     botonNuevaPartida = new Boton(tarjetaX + tarjetaAncho * 0.25, yTarjetaBoton,
         tarjetaAncho * 0.5, altoBotonTarjeta(), "Menú principal");
-    botonFinOficina = new Boton(tarjetaX + tarjetaAncho * 0.53, yTarjetaBoton,
-        anchoTarjetaBoton, altoBotonTarjeta(), "Volver a la oficina");
 }
 
 float margenTarjeta() {
@@ -431,6 +384,18 @@ float tx(float base, float minimo) {
 void draw() {
     // Lo que llegó por la red (multijugador, Red.pde)
     procesarRed();
+    // Una cinemática (el prólogo) tapa todo mientras dura (Cinematica.pde)
+    if (cinematicaActiva()) {
+        actualizarMusicaJuego();
+        dibujarCinematica();
+        return;
+    }
+    // Los créditos al terminar la campaña (Creditos.pde)
+    if (creditosActivos) {
+        actualizarMusicaJuego();
+        dibujarCreditos();
+        return;
+    }
     // Si a esta ronda le tocó la mision, mientras dura es lo unico que se ve.
     if (estado == MISION) {
         mision.dibujar();
@@ -446,6 +411,8 @@ void draw() {
     actualizarLlamada();
     actualizarCelular();
     actualizarZoomTV();
+    actualizarRonda();        // el aviso tras la pantalla negra (Ronda.pde)
+    actualizarEncargo();      // los 10 segundos y la autodestrucción (Encargo.pde)
     if (dibujarPaseoCamara()) {
         // la camara va entre el menu del cajon y la oficina
     } else if (enMenu) {
@@ -468,12 +435,27 @@ void draw() {
     dibujarInforme();
     dibujarEsperaTurno();
     dibujarVotaciones();
+    dibujarTransicionDia();
+    dibujarEncargo();          // Encargo.pde
     actualizarCursor();
 }
 
 // Igual que draw(), mousePressed() solo despacha: cada pantalla revisa sus
 // propios botones u objetos.
 void mousePressed() {
+    if (cinematicaActiva()) {
+        return;   // en la cinemática el clic no hace nada (se salta con espacio)
+    }
+    if (creditosActivos) {
+        clicCreditos();
+        return;
+    }
+    if (transicionDiaActiva() || autodestruyendo()) {
+        return;   // la pantalla negra entre un día y otro, o el celular quemándose
+    }
+    if (clicEnTerminarDia()) {
+        return;   // el botón TERMINAR EL DÍA (Encargo.pde)
+    }
     // En el menu del cajon se responde siempre (nada de la oficina lo bloquea)
     if (enMenu && !saliendo && !camaraBajando && !camaraSubiendo) {
         if (enSala) {
@@ -482,6 +464,9 @@ void mousePressed() {
             clicEnMenu();
         }
         return;
+    }
+    if (estado == EVENTO && mundo != null && mouseButton == LEFT) {
+        mundo.clicLanzar();   // en el parque, el clic lanza la botella hacia el cursor
     }
     if (saliendo || camaraBajando || camaraSubiendo || estado == MISION || momentoAMision >= 0 || estado == EVENTO || momentoAEvento >= 0) {
         return;
@@ -546,7 +531,7 @@ void clicEnOficina() {
         irA(ARBOL);
         cuadernoYaAbierto = true;
     } else if (objeto == objetoTelevisor) {
-        irA(MAPA);
+        irA(MAPA);   // el noticiero en grande; el día se termina con el botón rojo
         acercarTV();
     } else if (objeto == objetoPostit) {
         irA(AYUDA);
@@ -569,6 +554,8 @@ void clicEnCelularOficina() {
         avisar("En esta ronda no se publica: la misión de Valeria cuenta como tu jugada.");
     } else if (esRondaDeEvento()) {
         avisar("En esta ronda no se publica: el evento del parque cuenta como tu jugada.");
+    } else if (celularDestruido) {
+        avisar("El celular se autodestruyó. Mañana llega otro: usa el botón TERMINAR EL DÍA.");
     } else if (!celularDisponible()) {
         avisar("Primero escucha la noticia del teléfono.");
     } else {
@@ -593,8 +580,7 @@ void irA(int nuevoEstado) {
     }
     estado = nuevoEstado;
     if (nuevoEstado == MENU) {
-        fotoOficina = null;
-    }
+        }
 }
 
 // desbloquear() ya revisa por su cuenta si el nodo esta disponible, si es
@@ -628,12 +614,24 @@ void pasarTurno() {
     reiniciarCelular();
     if (partidaTerminada()) {
         cambiarFaseLlamada(LLAMADA_NINGUNA);
+        cerrarDia();   // al terminar la campaña, los créditos (Ronda.pde)
     } else {
-        irA(MENU);
+        if (!cerrarDia()) {   // si se terminó el día: la pantalla negra (Ronda.pde)
+            irA(MENU);
+        }
         String inicio = publico ? "" : "No publicaste nada en el turno anterior. ";
-        avisar(inicio + "Turno " + partida.getTurno() + " de " + Partida.TURNOS_TOTALES + ": recibiste " +
-            partida.getPuntosUltimoTurno() + " puntos para el árbol.");
-        mostrarTextoFlotante("+" + partida.getPuntosUltimoTurno(), COLOR_EXITO);
+        if (avisoFinDia != null) {   // no se decidió a tiempo (Encargo.pde)
+            inicio = avisoFinDia;
+            avisoFinDia = null;
+        }
+        String mensaje = inicio + "Turno " + partida.getTurno() + " de " + Partida.TURNOS_TOTALES + ": recibiste " +
+            partida.getPuntosUltimoTurno() + " puntos para el árbol.";
+        if (transicionDiaActiva()) {
+            avisoTrasTransicion = mensaje;   // se muestra al quitarse la pantalla negra (Ronda.pde)
+        } else {
+            avisar(mensaje);
+            mostrarTextoFlotante("+" + partida.getPuntosUltimoTurno(), COLOR_EXITO);
+        }
         prepararLlamadaDelTurno();
     }
 }
@@ -654,12 +652,14 @@ boolean arbolCompleto() {
 // raiz) y la partida reiniciada en el turno 1, que empieza en la oficina
 // con la primera llamada.
 void reiniciarPartida() {
+    reiniciarRonda();
+    turnoDelEncargo = -1;   // en la campaña nueva el encargo vuelve a sonar desde el día 1
+    creditosActivos = false;
     reiniciarMisionCampana();
     reiniciarEventosCampana();
     bienvenidaPendiente = true;
     arbol = new ArbolHabilidades();
     partida.iniciar(partida.getNombreCandidato(), arbol);
-    fotoCuaderno = null;
     reiniciarCelular();
     nodoSeleccionado = null;
     nodoAnimado = null;
@@ -672,8 +672,14 @@ void reiniciarPartida() {
 // Al cerrar la portada empieza el primer turno: en un momento suena el
 // telefono.
 void cerrarPortada() {
+    // la primera vez, antes de la campaña, va el prólogo (Cinematica.pde);
+    // al terminar se vuelve a llamar a esta misma función
+    if (prologoPendiente) {
+        prologoPendiente = false;
+        empezarCinematica("prologo", "portada");
+        return;
+    }
     mostrarPortada = false;
-    momentoFinPortada = millis();
     prepararLlamadaDelTurno();
     programarBienvenida();   // la videollamada de Valeria, si es la primera vez (Bienvenida.pde)
 }
@@ -699,6 +705,34 @@ void mostrarTextoFlotante(String texto, color c) {
 // sustentacion, que el recorrido preorden y las medidas del arbol funcionan
 // de verdad y no son solo una animacion en pantalla.
 void keyPressed() {
+    // F9: saltar al final, para la exposición (Ronda.pde). Con P2D la tecla
+    // llega con el código de NEWT (105); 120 es el de Java normal.
+    if (key == CODED && (keyCode == 105 || keyCode == 120)) {
+        saltarAlFinal();
+        return;
+    }
+    if (cinematicaActiva()) {
+        if (key == ESC) {
+            key = 0;
+        }
+        if (key == ' ' || key == ESC || key == ENTER || key == RETURN) {
+            saltarCinematica();
+        }
+        return;
+    }
+    if (creditosActivos) {
+        teclaCreditos();
+        if (key == ESC) {
+            key = 0;
+        }
+        return;
+    }
+    if (autodestruyendo()) {
+        if (key == ESC) {
+            key = 0;
+        }
+        return;   // mientras se quema el celular no se hace nada (Encargo.pde)
+    }
     if (estado == MISION) {
         if (key == ESC) {
             key = 0;  // en la mision Esc no cierra el juego
@@ -855,5 +889,12 @@ void imprimirGrafoConsola() {
         }
         String previo = anterior[z] == GrafoCiudad.SIN_ANTERIOR ? "–" : ciudad.getNombre(anterior[z]);
         println(nombre + " | " + nf(temporal[z], 2) + " min | " + previo);
+    }
+}
+
+// La rueda del mouse solo se usa en los créditos (mover el feed)
+void mouseWheel(MouseEvent e) {
+    if (creditosActivos) {
+        ruedaCreditos(e.getCount());
     }
 }

@@ -256,9 +256,10 @@ ArrayList<PVector> rutaBFS(float x0, float y0, float x1, float y1) {
   ArrayList<PVector> celdas = new ArrayList<PVector>();
   int c = meta;
   while (c != inicio) {
-    celdas.add(0, new PVector(baldosaDe(c / celdasY), baldosaDe(c % celdasY)));
+    celdas.add(new PVector(baldosaDe(c / celdasY), baldosaDe(c % celdasY)));
     c = vieneDe[c];
   }
+  java.util.Collections.reverse(celdas);   // se armó desde la meta hacia atrás
   celdas.add(new PVector(b.x, b.y));
   // simplificar: de cada punto se salta al más lejano que se vea en línea recta
   ArrayList<PVector> ruta = new ArrayList<PVector>();
@@ -342,9 +343,15 @@ void dibujarCiudad() {
   float px = pantallaX(yo.x, yo.y), py = pantallaY(yo.x, yo.y);
   int lugarYo = objetos.size();
   for (int m = 0; m < moviles.size(); m++) if (moviles.get(m) == yo) lugarYo = lugar[m];
+  int[] orden = ordenDeMoviles(moviles, lugar);
+  int siguiente = 0;   // el próximo móvil de "orden" por dibujar
 
   for (int k = 0; k <= objetos.size(); k++) {
-    dibujarMovilesEn(moviles, lugar, k);
+    // los móviles que van justo antes del objeto k
+    while (siguiente < orden.length && lugar[orden[siguiente]] == k) {
+      moviles.get(orden[siguiente]).dibujar();
+      siguiente++;
+    }
     if (k == objetos.size()) break;
     Objeto o = objetos.get(k);
     if (!o.seCruza(vx1, vy1, vx2, vy2)) continue;
@@ -362,23 +369,28 @@ void dibujarCiudad() {
   popMatrix();
 }
 
-// Los móviles que van justo antes del objeto k, de atrás hacia adelante
-void dibujarMovilesEn(ArrayList<Movil> moviles, int[] lugar, int k) {
-  ArrayList<Movil> aqui = new ArrayList<Movil>();
-  for (int m = 0; m < moviles.size(); m++) {
-    if (lugar[m] == k) aqui.add(moviles.get(m));
+// Los móviles ordenados una sola vez por cuadro: primero por el objeto
+// delante del que van y, en el mismo lugar, de atrás hacia adelante
+// (x + y). Son pocos, así que basta la inserción simple. Antes se recorría
+// la lista completa por cada objeto de la ciudad.
+int[] ordenDeMoviles(ArrayList<Movil> moviles, int[] lugar) {
+  int n = moviles.size();
+  int[] orden = new int[n];
+  float[] fondo = new float[n];
+  for (int m = 0; m < n; m++) {
+    orden[m] = m;
+    fondo[m] = moviles.get(m).px() + moviles.get(m).py();
   }
-  // ordenar por profundidad (x + y): pocos elementos, inserción simple
-  for (int a = 1; a < aqui.size(); a++) {
-    Movil v = aqui.get(a);
+  for (int a = 1; a < n; a++) {
+    int v = orden[a];
     int b = a - 1;
-    while (b >= 0 && aqui.get(b).px() + aqui.get(b).py() > v.px() + v.py()) {
-      aqui.set(b + 1, aqui.get(b));
+    while (b >= 0 && (lugar[orden[b]] > lugar[v] || (lugar[orden[b]] == lugar[v] && fondo[orden[b]] > fondo[v]))) {
+      orden[b + 1] = orden[b];
       b--;
     }
-    aqui.set(b + 1, v);
+    orden[b + 1] = v;
   }
-  for (Movil v : aqui) v.dibujar();
+  return orden;
 }
 
 // Rombos rojos en las celdas bloqueadas que se ven (para revisar el mapa)

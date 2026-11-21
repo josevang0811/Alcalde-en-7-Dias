@@ -81,6 +81,31 @@ class Bot {
     }
   }
 
+  // Después de la ronda: caminan de un punto a otro del parque, con pausas
+  float pausaPaseo;
+  void pasear(float dt) {
+    if (c.aturdido > 0) {
+      c.moviendose = false;
+      return;
+    }
+    if (pausaPaseo > 0) {
+      pausaPaseo -= dt;
+      c.moviendose = false;
+      return;
+    }
+    if (ruta == null) {
+      PVector p = puntoLibreCerca(centroX + random(-8, 8), centroY + random(-8, 8));
+      irA(p.x, p.y);
+      if (ruta == null) pausaPaseo = 1;
+      return;
+    }
+    if (seguirRuta(dt, false)) {
+      ruta = null;
+      c.moviendose = false;
+      pausaPaseo = random(0.6, 2.2);
+    }
+  }
+
   void ponerEnSuPuesto() {
     c.x = lugarX;
     c.y = lugarY;

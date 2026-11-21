@@ -109,11 +109,14 @@ void actualizarRonda(float dt) {
     if (relojRonda <= 0) terminarRonda();
     break;
   case FINAL:
-    for (Candidato c : candidatos) c.moviendose = false;
+    for (Candidato c : candidatos) {
+      if (c.bot != null) c.bot.pasear(dt);   // los bots siguen caminando
+      else c.moviendose = false;
+    }
     break;
   case VUELTA:
     moverHumanos(dt);
-    for (Candidato c : candidatos) if (c.bot != null) c.moviendose = false;
+    for (Candidato c : candidatos) if (c.bot != null) c.bot.pasear(dt);
     if (dist(yo.x, yo.y, yo.inicioX, yo.inicioY) < 1.8) {
       if (manejando != null) bajarseDelCarro();
       sonar("puerta");
@@ -145,7 +148,7 @@ void empezarRonda() {
     }
   }
   if (evento == VOLANTES) avisarTodos("¡A pegar volantes! Mantén E junto a una cartelera");
-  else if (evento == GENTE) avisarTodos("¡A convencer! E para rápido, F para asegurar con flechas");
+  else if (evento == GENTE) avisarTodos("¡A convencer! E para rápido, F para asegurar conversando");
   else avisarTodos("¡Hay lives por toda la ciudad! Llega a uno y reclámalo con F");
 }
 

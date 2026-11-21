@@ -1,3 +1,4 @@
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 
 // El grafo de la ciudad: los vertices son los ocho barrios de Ciudad Nova y
@@ -86,25 +87,26 @@ public class GrafoCiudad {
     // --- BFS: recorrido por niveles ---
     // Arranca desde todos los barrios marcados en "origenes" a la vez (nivel
     // 0) y avanza por capas: primero los que estan a 1 calle, despues a 2, y
-    // asi. Usa una cola (FIFO): se saca el primero, se miran sus vecinos y
-    // los que no se habian visitado entran al final con un nivel mas. Un
-    // barrio al que no se llega queda con nivel -1.
+    // asi. Usa una cola (FIFO): offer() mete al final y poll() saca el
+    // primero; se miran sus vecinos y los que no se habian visitado entran
+    // al final con un nivel mas. Un barrio al que no se llega queda con
+    // nivel -1.
     public int[] niveles(boolean[] origenes) {
         int[] nivel = new int[cantidad()];
-        ArrayList<Integer> cola = new ArrayList<Integer>();
+        ArrayDeque<Integer> cola = new ArrayDeque<Integer>();
         for (int z = 0; z < cantidad(); z++) {
             nivel[z] = -1;
             if (origenes[z]) {
                 nivel[z] = 0;
-                cola.add(z);
+                cola.offer(z);
             }
         }
         while (!cola.isEmpty()) {
-            int actual = cola.remove(0);
+            int actual = cola.poll();
             for (int v : vecinos(actual)) {
                 if (nivel[v] == -1) {
                     nivel[v] = nivel[actual] + 1;
-                    cola.add(v);
+                    cola.offer(v);
                 }
             }
         }
@@ -184,16 +186,18 @@ public class GrafoCiudad {
     }
 
     // El camino mas corto como lista de barrios, del origen al destino. Se
-    // arma leyendo "anterior" desde el destino hacia atras y se va
-    // insertando al principio, para que quede en el orden del recorrido.
+    // lee "anterior" desde el destino hacia atras, asi que sale al reves: se
+    // apila (push) y al desapilar (pop) queda en el orden del recorrido.
     public ArrayList<Integer> caminoMasCorto(int origen, int destino) {
         int[] anterior = new int[cantidad()];
         dijkstra(origen, new boolean[cantidad()], new int[cantidad()], anterior);
+        ArrayDeque<Integer> pila = new ArrayDeque<Integer>();
+        for (int z = destino; z != SIN_ANTERIOR; z = anterior[z]) {
+            pila.push(z);
+        }
         ArrayList<Integer> camino = new ArrayList<Integer>();
-        int z = destino;
-        while (z != SIN_ANTERIOR) {
-            camino.add(0, z);
-            z = anterior[z];
+        while (!pila.isEmpty()) {
+            camino.add(pila.pop());
         }
         return camino;
     }
@@ -201,16 +205,18 @@ public class GrafoCiudad {
     // De todos los barrios propios, el que esta a menos minutos del destino.
     // Desde ahi sale la publicacion: llega por el camino mas corto desde el
     // territorio del candidato, no siempre desde la sede.
+    // Como el grafo es no dirigido, ir de z al destino cuesta lo mismo que
+    // ir del destino a z: basta un solo Dijkstra desde el destino para tener
+    // los minutos de todos los barrios propios a la vez.
     public int propioMasCercano(boolean[] propios, int destino) {
+        int[] temporal = new int[cantidad()];
+        dijkstra(destino, new boolean[cantidad()], temporal, new int[cantidad()]);
         int mejor = SIN_ANTERIOR;
         int mejorMinutos = INFINITO;
         for (int z = 0; z < cantidad(); z++) {
-            if (propios[z]) {
-                int minutos = minutosMasCorto(z, destino);
-                if (minutos < mejorMinutos) {
-                    mejor = z;
-                    mejorMinutos = minutos;
-                }
+            if (propios[z] && temporal[z] < mejorMinutos) {
+                mejor = z;
+                mejorMinutos = temporal[z];
             }
         }
         return mejor;

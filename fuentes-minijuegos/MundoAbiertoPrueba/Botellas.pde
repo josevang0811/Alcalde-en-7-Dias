@@ -16,6 +16,7 @@ class Botella extends Movil {
   float x, y, vx, vy, recorrido;
   int dueno;
   boolean viva = true;
+  Candidato objetivo;   // si se lanzó con el cursor encima de un rival, lo sigue
 
   Botella(Candidato c, float dx, float dy) {
     float l = sqrt(dx * dx + dy * dy);
@@ -37,6 +38,13 @@ class Botella extends Movil {
   void actualizar(float dt) {
     int pasos = 4;
     for (int k = 0; k < pasos && viva; k++) {
+      if (objetivo != null && objetivo.aturdido <= 0) {
+        float dx = objetivo.x - x, dy = objetivo.y - y, l = sqrt(dx * dx + dy * dy);
+        if (l > 0.01) {
+          vx = dx / l * VELOCIDAD_BOTELLA;
+          vy = dy / l * VELOCIDAD_BOTELLA;
+        }
+      }
       x += vx * dt / pasos;
       y += vy * dt / pasos;
       recorrido += VELOCIDAD_BOTELLA * dt / pasos;
@@ -88,7 +96,7 @@ class Botella extends Movil {
 boolean lanzarBotella(Candidato c, float dx, float dy) {
   if (c.botellas <= 0 || c.aturdido > 0 || esperaLanzar[c.id] > 0) return false;
   if (dx * dx + dy * dy < 0.0001) return false;
-  c.botellas--;
+  // las botellas son ilimitadas: solo hay una pausa corta entre una y otra
   esperaLanzar[c.id] = ESPERA_LANZAR;
   c.mirarHacia(c.x + dx, c.y + dy);
   botellasVolando.add(new Botella(c, dx, dy));
@@ -115,6 +123,71 @@ void lanzarDe(Candidato yo) {
   }
   if (blanco != null) lanzarBotella(yo, blanco.x - yo.x, blanco.y - yo.y);
   else lanzarBotella(yo, yo.dirX, yo.dirY);
+}
+
+
+// --- Apuntar con el mouse ---
+// La botella va hacia el cursor. Si el cursor está encima de un rival (a
+// tiro), se le apunta a él y le pega; si no, cae donde está el cursor.
+float[] mouseEnMundo() {
+  float nx = (mouseX - aPantallaX(0)) / pixel, ny = (mouseY - aPantallaY(0)) / pixel;
+  float a = (nx - OX) / T, b = (ny - OY) * 2 / T;
+  return new float[] {(a + b) / 2, (b - a) / 2};
+}
+
+// El rival que tiene el cursor encima (su dibujo mide 16 x 28)
+Candidato rivalBajoMouse(Candidato yo) {
+  float nx = (mouseX - aPantallaX(0)) / pixel, ny = (mouseY - aPantallaY(0)) / pixel;
+  Candidato mejor = null;
+  float mejorY = -1e9;
+  for (Candidato c : candidatos) {
+    if (c == yo) continue;
+    float sx = pantallaX(c.x, c.y), sy = pantallaY(c.x, c.y);
+    if (nx >= sx - 10 && nx <= sx + 10 && ny >= sy - 30 && ny <= sy + 4 && sy > mejorY) {
+      mejor = c;   // si hay dos, el de adelante
+      mejorY = sy;
+    }
+  }
+  return mejor;
+}
+
+void lanzarAlMouse(Candidato yo) {
+  Candidato blanco = rivalBajoMouse(yo);
+  if (blanco != null) {
+    if (lanzarBotella(yo, blanco.x - yo.x, blanco.y - yo.y)) {
+      botellasVolando.get(botellasVolando.size() - 1).objetivo = blanco;   // lo sigue
+    }
+    return;
+  }
+  float[] m = mouseEnMundo();
+  lanzarBotella(yo, m[0] - yo.x, m[1] - yo.y);
+}
+
+// Clic izquierdo en la ronda: lanzar (lo llama el mousePressed del juego)
+void clicLanzar() {
+  if (rondaActiva() && modoRed != INVITADO && yo.aturdido <= 0) lanzarAlMouse(yo);
+}
+
+// La mira: un aro rojo en el rival que tiene el cursor encima (a tiro) y
+// una cruz pequeña donde está el mouse
+void dibujarMiraBotella() {
+  Candidato c = rivalBajoMouse(yo);
+  noFill();
+  strokeWeight(2 * pixel);
+  if (c != null) {
+    float d = dist(c.x, c.y, yo.x, yo.y);
+    float sx = aPantallaX(pantallaX(c.x, c.y)), sy = aPantallaY(pantallaY(c.x, c.y) - 13);
+    stroke(d <= ALCANCE_BOTELLA ? color(230, 60, 50) : color(150, 140, 130), 230);
+    ellipse(sx, sy, 26 * pixel, 34 * pixel);
+  }
+  stroke(c != null ? color(230, 60, 50) : color(255, 243, 214), 220);
+  strokeWeight(1.5 * pixel);
+  float r = 5 * pixel;
+  line(mouseX - r, mouseY, mouseX - r * 0.4, mouseY);
+  line(mouseX + r * 0.4, mouseY, mouseX + r, mouseY);
+  line(mouseX, mouseY - r, mouseX, mouseY - r * 0.4);
+  line(mouseX, mouseY + r * 0.4, mouseX, mouseY + r);
+  noStroke();
 }
 
 void actualizarBotellas(float dt) {

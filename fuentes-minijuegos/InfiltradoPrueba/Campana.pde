@@ -18,12 +18,6 @@
 //   Asistente de IA    la habilidad del rol se recarga un 30 % mas rapido
 //   Bots de difusion   las camaras tardan mas en verte
 
-final String[] HERRAMIENTAS = {"Volantes", "Megáfono", "Perfil verificado", "Libreta de notas",
-  "Fuente confiable", "Rueda de prensa", "Asistente de IA", "Bots de difusión"};
-final String[] EFECTO_HERRAMIENTA = {"+2 paquetes para lanzar", "lo que lanzas suena más fuerte",
-  "el jefe te reconoce más de cerca", "reconocimiento de 25 s", "sabes 2 dígitos del código",
-  "una respuesta de radio más", "tu habilidad se recarga más rápido", "las cámaras tardan más en verte"};
-
 String barrioCampana = "La Colina";
 int apoyoCampana = 45;
 String buloCampana = "agua contaminada en El Puerto";
@@ -99,7 +93,7 @@ void aplicarHerramientas() {
 }
 
 float tiempoReconocimientoTotal() {
-  return tieneHerramienta("Libreta de notas") ? 25 : TIEMPO_RECONOCIMIENTO;
+  return tieneHerramienta("Libreta de notas") ? 14 : TIEMPO_RECONOCIMIENTO;
 }
 
 float ruidoLanzamiento() {
@@ -156,27 +150,5 @@ void escribirResultado(boolean exito) {
     saveStrings(dataPath("resultado.txt"), l.array());
   } catch (Exception e) {
     println("No se pudo escribir resultado.txt: " + e.getMessage());
-  }
-}
-
-// Lista de herramientas en la pantalla de elegir rol
-void dibujarHerramientasCampana(float x, float y, float w) {
-  float e = escala;
-  textFont(letraChica);
-  textAlign(LEFT, TOP);
-  fill(NEON_VERDE);
-  text("Herramientas de tu campaña" + (campanaDePrueba ? " (de prueba: no hay campana.txt)" : " · " + barrioCampana), x, y);
-  int n = 0;
-  for (int k = 0; k < HERRAMIENTAS.length; k++) {
-    if (!tieneHerramienta(HERRAMIENTAS[k])) continue;
-    float cx = x + (n % 2) * w / 2;
-    float cy = y + 22 * e + (n / 2) * 18 * e;
-    fill(220);
-    text("· " + HERRAMIENTAS[k] + ": " + EFECTO_HERRAMIENTA[k], cx, cy);
-    n++;
-  }
-  if (n == 0) {
-    fill(140);
-    text("Ninguna. Desbloquea habilidades en el árbol de Alcalde Digital.", x, y + 22 * e);
   }
 }

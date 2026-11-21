@@ -26,9 +26,12 @@ final int LLAMADA_ATENDIDA = 7;     // ya se oyo la noticia de este turno
 final int ESPERA_ANTES_DE_SONAR = 1200;
 final int CICLO_TIMBRE = 2600;      // cada cuanto se repite el "ring, ring"
 final int DURACION_CONTESTAR = 650;
-final int DURACION_CORTE = 1400;    // lo que dura el "tu, tu, tu"
-final int DURACION_COLGAR = 550;
+final int DURACION_CORTE = 700;     // lo que dura el "tu, tu" (corto: que cuelgue rápido)
+final int DURACION_COLGAR = 380;
 final int MS_POR_LETRA = 24;   // un poco más rápido, al ritmo de las voces (+25%)
+// La llamada de la periodista dura como mucho 10 s: dice el titular y quién
+// lo publicó, y cuelga. Los comentarios los cuenta Nico en el celular.
+final int MAX_LLAMADA = 10000;
 
 int faseLlamada = LLAMADA_NINGUNA;
 // Con la Libreta de notas del arbol se puede volver a oir la noticia, una
@@ -47,11 +50,6 @@ int momentoUltimaVoz;
 
 // Donde queda el auricular cuando esta al frente (coordenadas del lienzo de
 // la oficina): a la derecha, parado, grande, como en el dibujo del equipo.
-final float AURICULAR_X = 862;   // centro del auricular sobre el telefono
-final float AURICULAR_Y = 323.5;
-final float FRENTE_X = 1032;
-final float FRENTE_Y = 318;
-final float FRENTE_ESCALA = 3.4;
 
 // ===========================================================================
 // FASES
@@ -110,7 +108,15 @@ void actualizarLlamada() {
     } else if (faseLlamada == LLAMADA_HABLANDO) {
         actualizarEsperaVoz();
         actualizarVoz();
-        if (tiempoEnFase() - esperaVoz >= finEscritura + pausaDeLectura()) {
+        // no se cuelga mientras la voz sigue hablando: el texto no se quita
+        // antes de que termine de decirlo (el tope es solo por si algo falla)
+        boolean vozTodaviaSuena = vozSonando != null && vozSonando.isRunning();
+        int tope = llamadaDeValeria() ? 45000 : (llamadaDeEncargo() ? MAX_LLAMADA_ENCARGO : MAX_LLAMADA);
+        boolean seAcaboElTope = tiempoEnFase() >= tope;
+        if ((tiempoEnFase() - esperaVoz >= finEscritura + pausaDeLectura() && !vozTodaviaSuena) || seAcaboElTope) {
+            if (seAcaboElTope && vozSonando != null) {
+                vozSonando.stop();   // a los 10 s se cuelga aunque no haya terminado
+            }
             cambiarFaseLlamada(LLAMADA_CORTADA);
         }
     } else if (faseLlamada == LLAMADA_CORTADA && tiempoEnFase() >= DURACION_CORTE) {
@@ -119,6 +125,8 @@ void actualizarLlamada() {
         cambiarFaseLlamada(LLAMADA_ATENDIDA);
         if (llamadaDeValeria()) {
             alColgarValeria();   // al colgar Valeria empieza la mision (MisionCampana.pde)
+        } else {
+            empezarEncargo();   // al colgar corren los 10 segundos del encargo (Encargo.pde)
         }
     }
 }
@@ -126,7 +134,7 @@ void actualizarLlamada() {
 // El telefono solo suena con la oficina a la vista. Si el jugador esta en
 // la ayuda, la cuenta vuelve a empezar al regresar.
 void actualizarPorSonar() {
-    if (estado != MENU || mostrarPortada || saliendo) {
+    if (estado != MENU || mostrarPortada || saliendo || transicionDiaActiva()) {
         momentoFaseLlamada = millis();
     } else if (tiempoEnFase() >= ESPERA_ANTES_DE_SONAR) {
         cambiarFaseLlamada(LLAMADA_SONANDO);
@@ -199,6 +207,9 @@ String accionTelefono() {
         if (puedeRepetirLlamada()) {
             return "Libreta: clic para volver a oír (1 vez)";
         }
+        if (telefonoHumeando) {
+            return "El mensaje se autodestruyó";
+        }
         return repeticionUsada ? "Ya volviste a oír la noticia" : "Ya colgaron";
     }
     return "La campaña terminó";
@@ -222,6 +233,8 @@ void clicEnTelefono() {
     } else if (puedeRepetirLlamada()) {
         repeticionUsada = true;
         contestarTelefono(true);
+    } else if (faseLlamada == LLAMADA_ATENDIDA && telefonoHumeando) {
+        avisar("El mensaje se autodestruyó. Mañana llega otro encargo.");
     } else if (faseLlamada == LLAMADA_ATENDIDA) {
         avisar(repeticionUsada ? "Ya volviste a oír la noticia en este turno."
             : "Ya colgaron. Con la «Libreta de notas» del árbol puedes volver a oír la noticia.");
@@ -235,19 +248,14 @@ void clicEnTelefono() {
 // noticia del turno (con la Libreta de notas).
 void contestarTelefono(boolean repetir) {
     Noticia n = partida.getNoticiaDelTurno();
-    // La noticia viene de una publicación de Civitas: de qué se trata, quién
-    // la hizo, qué dicen los comentarios y, si es el caso, el odio que genera.
-    // Con eso el jugador decide; el tipo real no se dice.
-    String datos = "La publicó " + n.describirAutor() + ". En los comentarios, " + n.getComentarios() + ".";
-    if (n.generaOdio()) {
-        datos += " Y ojo: la publicación está llena de mensajes de odio contra un grupo de personas.";
+    // La noticia viene de una publicación de Civitas. Para que la llamada no
+    // pase de 10 s, la periodista solo dice de qué se trata y quién la hizo;
+    // los comentarios los cuenta Nico en el celular. El tipo real no se dice.
+    partesLlamada = frasesCortasDeNoticia(n);
+    if (llamadaDeEncargo()) {
+        partesLlamada = frasesEncargo(n);   // la llamada como misión secreta (Encargo.pde)
+        empezarMusicaEncargo();
     }
-    partesLlamada = new String[] {
-        saludoPeriodista(repetir),
-        "Vi una publicación en Civitas que está dando de qué hablar: dice que " + n.getTitular() + ".",
-        datos,
-        despedidaPeriodista(repetir)
-    };
     // En la ronda de la mision llama Valeria (MisionCampana.pde).
     if (llamadaDeValeria()) {
         partesLlamada = partesLlamadaValeria();
@@ -260,23 +268,17 @@ void contestarTelefono(boolean repetir) {
     cambiarFaseLlamada(LLAMADA_CONTESTANDO);
 }
 
-// En el primer turno la periodista se presenta; despues saluda corto, y el
-// saludo cambia de un turno a otro para que no suene siempre igual.
-String saludoPeriodista(boolean repetir) {
-    if (repetir) {
-        return "Le repito lo que le conté:";
+// Lo que dice la periodista de una noticia: el titular y quién la publicó (y
+// si viene cargada de odio). Son las mismas frases que se graban al arrancar.
+String[] frasesCortasDeNoticia(Noticia n) {
+    String autor = "Lo publicó " + n.describirAutor() + ".";
+    if (n.generaOdio()) {
+        autor += " Y está lleno de mensajes de odio.";
     }
-    String[] saludos = {
-        "¿Aló? Marta otra vez. Le cuento lo último:",
-        "¡Qué bueno que contesta! Acaba de llegarme esto:",
-        "Aló, candidato. Esto se está moviendo mucho:",
-        "Marta Ríos, del Noticiero. Anote esto:",
-        "¿Me escucha? Le tengo una noticia:"
+    return new String[] {
+        "Candidato, en Civitas dicen que " + n.getTitular() + ".",
+        autor
     };
-    if (partida.getTurno() == 1) {
-        return "¡Aló, candidato! Le habla " + Noticiero.PERIODISTA + ", del " + Noticiero.MEDIO + ". Tengo una de última hora:";
-    }
-    return saludos[(partida.getTurno() - 2) % saludos.length];
 }
 
 // Los saludos y despedidas, para grabar su voz al arrancar.
@@ -296,20 +298,6 @@ String[] frasesFijasPeriodista() {
         "Si sé algo más, lo llamo. ¡Hasta luego!",
         "Me tengo que ir. ¡Que le vaya bien!"
     };
-}
-
-String despedidaPeriodista(boolean repetir) {
-    if (repetir) {
-        return "Eso era todo.";
-    }
-    String[] despedidas = {
-        "Lo dejo, que me entra otra llamada.",
-        "Eso es todo por ahora. ¡Suerte en la campaña!",
-        "Tengo que colgar, me esperan en el canal.",
-        "Si sé algo más, lo llamo. ¡Hasta luego!",
-        "Me tengo que ir. ¡Que le vaya bien!"
-    };
-    return despedidas[(partida.getTurno() - 1) % despedidas.length];
 }
 
 // ===========================================================================
@@ -392,7 +380,10 @@ void actualizarEsperaVoz() {
 // Tiempo para terminar de leer despues de que se escribio todo: mas largo
 // si el texto es largo, pero nunca mas de 5 segundos.
 int pausaDeLectura() {
-    return min(2500 + momentosLetras.length * 10, 5000);
+    if (!llamadaDeValeria()) {
+        return 400;   // termina de hablar y cuelga
+    }
+    return min(900 + momentosLetras.length * 3, 1800);
 }
 
 // Mientras aparecen letras, suena una silaba de la voz cada dos letras (sin
@@ -577,29 +568,6 @@ void dibujarEscenaLlamada() {
     }
 }
 
-// El cable en espiral va desde la base del telefono hasta la punta de
-// abajo del auricular (la que tiene el cable). Los aros crecen hacia el
-// auricular porque esa parte esta mas cerca de quien mira.
-void dibujarCableLlamada(float x, float y, float giro, float escalaAuricular) {
-    // Punta del auricular donde entra el cable (934, 328 en su base),
-    // girada y escalada igual que el auricular.
-    float dx = (934 - AURICULAR_X) * escalaAuricular;
-    float dy = (328 - AURICULAR_Y) * escalaAuricular;
-    float puntaX = x + dx * cos(giro) - dy * sin(giro);
-    float puntaY = y + dx * sin(giro) + dy * cos(giro);
-    noFill();
-    stroke(COLOR_CONTORNO);
-    int aros = 26;
-    for (int i = 0; i <= aros; i++) {
-        float t = i / (float) aros;
-        float cx = bezierPoint(926, 900, puntaX - 70, puntaX, t);
-        float cy = bezierPoint(404, 520, puntaY + 70, puntaY, t);
-        float tamano = lerp(1, escalaAuricular * 0.75, t * t);
-        strokeWeight(1.8 + t * 1.2);
-        ellipse(cx, cy, 10 * tamano, 7 * tamano);
-    }
-}
-
 // --- El globo de la periodista ---
 
 // Medidas del globo en el lienzo de la oficina.
@@ -619,6 +587,9 @@ float tamanoParte(int parte) {
 }
 
 color colorParte(int parte) {
+    if (parte == 3 && llamadaDeEncargo()) {
+        return COLOR_ROJO;   // "este mensaje se autodestruirá"
+    }
     if (parte == 1) {
         return COLOR_TEXTO;
     } else if (parte == 2) {
@@ -671,10 +642,11 @@ void dibujarFormaGlobo(float x, float y, float ancho, float alto) {
 float dibujarCabeceraLlamada(float x, float y) {
     usarLetraEscena(LETRA_NEGRITA, 14);
     boolean valeria = llamadaDeValeria();
-    String etiqueta = valeria ? (llamadaDeEvento() ? "EVENTO" : "MISIÓN") : "ÚLTIMA HORA";
+    boolean encargo = llamadaDeEncargo();
+    String etiqueta = valeria ? (llamadaDeEvento() ? "EVENTO" : "MISIÓN") : (encargo ? "ENCARGO SECRETO" : "ÚLTIMA HORA");
     float anchoEtiqueta = textWidth(etiqueta) + 20;
     noStroke();
-    fill(valeria ? #7a4fc0 : COLOR_ROJO);
+    fill(valeria ? #7a4fc0 : (encargo ? #1a1a1a : COLOR_ROJO));
     rect(x, y, anchoEtiqueta, 26, 4);
     fill(COLOR_BLANCO);
     textAlign(LEFT, CENTER);
@@ -682,7 +654,7 @@ float dibujarCabeceraLlamada(float x, float y) {
 
     fill(COLOR_TEXTO);
     usarLetraEscena(LETRA_NEGRITA, 16);
-    text(valeria ? "Valeria  ·  Estrategia digital de tu campaña" : Noticiero.PERIODISTA + "  ·  " + Noticiero.MEDIO, x + anchoEtiqueta + 12, y + 12);
+    text(valeria ? "Valeria  ·  Estrategia digital de tu campaña" : (encargo ? Noticiero.PERIODISTA + "  ·  mensaje cifrado" : Noticiero.PERIODISTA + "  ·  " + Noticiero.MEDIO), x + anchoEtiqueta + 12, y + 12);
     return y + 34;
 }
 
@@ -729,7 +701,7 @@ void dibujarTextoLlamada(float x, float y, float ancho) {
 void dibujarPistaLlamada(float xDerecha, float yAbajo) {
     textAlign(RIGHT, BOTTOM);
     if (faseLlamada == LLAMADA_CORTADA) {
-        int tus = min(3, 1 + tiempoEnFase() / 450);
+        int tus = min(3, 1 + tiempoEnFase() / 250);
         String texto = "Se cortó la llamada ·";
         for (int i = 0; i < tus; i++) {
             texto += " tu...";
@@ -744,6 +716,11 @@ void dibujarPistaLlamada(float xDerecha, float yAbajo) {
     usarLetraEscena(LETRA_NEGRITA, 14);
     if (llamadaDeValeria()) {
         text(llamadaDeEvento() ? "Prepárate: al colgar sales al parque" : "Prepárate: al colgar empieza la misión", xDerecha, yAbajo);
+        return;
+    }
+    if (llamadaDeEncargo() && !repeticionUsada) {
+        fill(COLOR_ROJO, 255 * parpadeo);
+        text("Al colgar tienes 10 segundos", xDerecha, yAbajo);
         return;
     }
     text(repeticionUsada ? "Libreta de notas: no la vuelves a oír en este turno" : "Escucha bien: la noticia no se repite",

@@ -12,7 +12,6 @@ final color COLOR_RIVAL = #E8344E;
 final color COLOR_AMBAR = #FFB547;
 final color NEON_VERDE = #3DDC84;
 final color COLOR_FONDO = #0B0E1A;
-final color COLOR_PANEL = #0F1424;
 
 // El centro de la camara se redondea a pixeles enteros: asi todas las
 // baldosas caen justas y no aparecen rayitas entre ellas.
@@ -262,15 +261,9 @@ void dibujarBaldosaAlta(int i, int j) {
     // la flechita sobra cuando ya tiene la etiqueta encima
     if (marca != null && marca[i][j] >= 1) return;
     // flechitas sobre lo que se puede recoger o usar
-    if (soloEscapar()) {
-      // ya solo importan las salidas
-      if (c == 'E' || c == 'm' || (i == DUCTO_CALLE_I && j == DUCTO_CALLE_J)) marcador(i + 0.5, j + 0.5, c == 'v' ? 14 : 30, NEON_VERDE);
-      return;
-    }
-    if (c == 'h' || c == 'l' || c == 'P' || c == 'r' || c == 'b' || c == 'y' || c == 'n' || c == 'o') marcador(i + 0.5, j + 0.5, 14, c == 'r' ? COLOR_RIVAL : (c == 'b' ? #3E7BFF : COLOR_AMBAR));
-    if (c == 'S' && !servidorCopiado && i == mapa.servidorI && j == mapa.servidorJ) marcador(i + 0.5, j + 0.5, 40, COLOR_AMBAR);
-    if ((c == 'E' || c == 'm') && servidorCopiado) marcador(i + 0.5, j + 0.5, 30, NEON_VERDE);
-    if ((c == 'O' && !chatLeido) || (c == 'X' && !tableroVisto) || (c == 'U' && !cuadernoVisto)) marcador(i + 0.5, j + 0.5, 30, NEON_MAGENTA);
+    // solo se marca lo que falta de la ruta: tarjetas que hacen falta, el
+    // servidor y, ya copiado, la camioneta
+    if (paradaPendiente(i, j, c)) marcador(i + 0.5, j + 0.5, c == 'S' ? 40 : (c == 'E' ? 30 : 14), colorParada(c == 'S' ? 5 : (c == 'E' ? 6 : "-rbyn".indexOf(c))));
   }
   noTint();
 }
@@ -573,8 +566,8 @@ void dibujarPlano() {
   for (int n = 0; n < vigilantes.size(); n++) {
     Vigilante v = vigilantes.get(n);
     ArrayList<int[]> r = v.rondaCompleta;
-    stroke(red(v.colorRonda), green(v.colorRonda), blue(v.colorRonda), 210);
-    strokeWeight(4 * escala);
+    stroke(red(v.colorRonda), green(v.colorRonda), blue(v.colorRonda), rutaMision.size() > 1 ? 110 : 210);   // tenues: resalta la ruta
+    strokeWeight((rutaMision.size() > 1 ? 3 : 4) * escala);
     for (int k = 0; k + 1 < r.size(); k++) {
       int[] a = r.get(k);
       int[] b = r.get(k + 1);
@@ -592,6 +585,7 @@ void dibujarPlano() {
   }
 
   dibujarDuctos(200);
+  dibujarRutaMision();
 
   // Nombre de cada cuarto en su centro
   float[] sumaX = new float[NOMBRES_ZONA.length];
@@ -617,22 +611,11 @@ void dibujarPlano() {
   for (int i = 0; i < mapa.ancho; i++) {
     for (int j = 0; j < mapa.alto; j++) {
       char c = mapa.celdas[i][j];
-      if (c == 'S' && !servidorMarcado) {
+      // solo se rotula lo de la ruta (dibujarRutaMision); lo demás ya no se marca
+      if (c == 'S' && !servidorMarcado && rutaMision.size() < 2) {
         etiquetaMundo(i + 0.5, j + 0.5, "SERVIDOR", COLOR_AMBAR);
         servidorMarcado = true;
       }
-      if (c == 'E' && !camionetaMarcada) {
-        etiquetaMundo(i + 0.5, j + 0.5, "Camioneta", NEON_VERDE);
-        camionetaMarcada = true;
-      }
-      if (c == 'm') etiquetaMundo(i + 0.5, j + 0.5, "Moto (salida)", NEON_VERDE);
-      if (i == DUCTO_CALLE_I && j == DUCTO_CALLE_J) etiquetaMundo(i + 0.5, j + 0.5, "Ducto a la calle (máx. 2 kg)", NEON_VERDE);
-      if (c == 'r') etiquetaMundo(i + 0.5, j + 0.5, "Tarjeta roja", COLOR_RIVAL);
-      if (c == 'b') etiquetaMundo(i + 0.5, j + 0.5, "Tarjeta azul", #3E7BFF);
-      if (c == 'y') etiquetaMundo(i + 0.5, j + 0.5, "Tarjeta amarilla", COLOR_AMBAR);
-      if (c == 'n') etiquetaMundo(i + 0.5, j + 0.5, "Código", NEON_CIAN);
-      if (c == 'O') etiquetaMundo(i + 0.5, j + 0.5, "Celular del rival", NEON_MAGENTA);
-      if (c == 'T') etiquetaMundo(i + 0.5, j + 0.5, "Luces", #F2F2E9);
     }
   }
 }

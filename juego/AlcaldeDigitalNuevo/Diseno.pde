@@ -24,12 +24,10 @@ PImage imgOficina;        // la oficina con todo en su lugar
 PImage imgSinAuricular;   // oscurecida y sin el auricular (durante la llamada)
 PImage imgSinCelular;     // oscurecida y sin el celular (al publicar)
 PImage imgSinLibro;       // oscurecida y sin el libro (el arbol)
-PImage imgNoticiero;      // la pantalla del televisor en grande
-PImage imgAuricular, imgCelular, imgMapaCiudad, imgLibro;
-PImage imgNodoGris, imgNodoAmarillo;
+PImage imgAuricular, imgCelular, imgMapaCiudad;
 PImage[] pinesBarrio = new PImage[8];   // las ubicaciones del mapa de papel
 PImage imgTelefonoBase;   // el telefono recortado de la oficina, para hacerlo vibrar
-PImage imgCursor, imgCursorMano, imgCursorOjo;
+PImage imgCursor, imgCursorMano;
 
 // Proporcion del dibujo (2576 x 1438 en el prototipo).
 final float PROPORCION_DIBUJO = 2576.0 / 1438.0;
@@ -48,11 +46,8 @@ void cargarDiseno() {
         pinesBarrio[z] = loadImage("pin_barrio_" + z + ".png");
     }
     cargarLibroHabilidades();   // Cuaderno.pde
-    imgNodoGris = loadImage("nodo_gris.png");
-    imgNodoAmarillo = loadImage("nodo_amarillo.png");
     imgCursor = loadImage("cursor.png");
     imgCursorMano = loadImage("cursor_mano.png");
-    imgCursorOjo = loadImage("cursor_ojo.png");
     prepararGlifos();
     prepararPapelMenu();
 }
@@ -322,6 +317,9 @@ PImage imagenTextoPixel(String texto, int s, color relleno, color borde, color l
     if (guardada != null) {
         return guardada;
     }
+    if (textosPixel.size() > 3000) {
+        textosPixel.clear();   // los textos que cambian cada cuadro (contadores) no se acumulan
+    }
     int ancho = medirPixel(texto) * s + MARGEN_PIXEL * 2;
     int alto = 9 * s + MARGEN_PIXEL * 2;   // 7 filas y 2 arriba para las tildes
     boolean[][] lleno = new boolean[ancho][alto];
@@ -465,7 +463,6 @@ PImage[] opcionResaltada = new PImage[4];
 int opcionBajoMouse = -1;
 
 // Paseo de la camara entre el menu y la oficina.
-final int DURACION_CAMARA = 1250;
 boolean enMenu = true;            // se ve el cajon (o se esta saliendo de el)
 boolean camaraBajando = false;    // del menu a la oficina
 boolean camaraSubiendo = false;   // de la oficina al menu
@@ -834,7 +831,7 @@ boolean dibujarPaseoCamara() {
         translate(cx, cy);
         scale(esc);
         translate(-cx, -cy);
-        image(imgOficina, camX, camY, camAncho, camAlto);
+        dibujarOficinaConTV();   // la oficina con la TV encendida
         popMatrix();
     } else {
         // el menu: al irse baja un poquito y se oscurece; al volver llega y se acomoda
@@ -936,8 +933,27 @@ void dibujarFranjaTitulares(float x, float y, float ancho, float alto, float cel
     image(franja.get(inicio, 0, ventana, franja.height), x, y, ventana * celda, alto);
 }
 
+// La TV de la oficina está siempre encendida con el noticiero en pequeño
+// (Televisor.pde): el presentador, los reels, el mapa, la gráfica de los
+// candidatos y la del impacto de lo último que se publicó.
+// La oficina entera en la cámara, con el noticiero pequeño en la TV (para
+// el zoom al televisor, la placa oscura del celular y el libro, y al bajar
+// del menú: la TV no se ve apagada en ningún momento)
+void dibujarOficinaConTV() {
+    image(imgOficina, camX, camY, camAncho, camAlto);
+    pushMatrix();
+    translate(camX, camY);
+    scale(camAncho / ANCHO_ESCENA);
+    dibujarTelevisorOficina();
+    popMatrix();
+}
+
 void dibujarTelevisorOficina() {
-    dibujarFranjaTitulares(722, 170, 299, 17, 18, true);
+    if (imgNoticieroTV == null) {
+        dibujarFranjaTitulares(722, 170, 299, 17, 18, true);
+        return;
+    }
+    dibujarNoticieroOficina(TV_OFICINA_X, TV_OFICINA_Y, TV_OFICINA_ANCHO, TV_OFICINA_ALTO);
 }
 
 // Mientras suena, el telefono tiembla sobre el escritorio: se vuelve a
@@ -997,7 +1013,7 @@ float aparicion(int retraso) {
 void dibujarPlaca(PImage placa) {
     background(0);
     float t = constrain((millis() - momentoApertura) / (float) DURACION_FUNDIDO_PLACA, 0, 1);
-    image(imgOficina, camX, camY, camAncho, camAlto);
+    dibujarOficinaConTV();   // la oficina con la TV encendida
     tint(255, 255 * t);
     image(placa, camX, camY, camAncho, camAlto);
     noTint();
@@ -1110,10 +1126,6 @@ void actualizarZoomTV() {
     zoomTV = lerp(zoomTVDesde, zoomTVHasta, k);
 }
 
-boolean alejandoTV() {
-    return zoomTVHasta == 0 && zoomTV > 0.001;
-}
-
 // La oficina vista con el zoom "e" (0 a 1): crece hacia el televisor con un
 // pequeno balanceo, y al final aparece encima la pantalla del noticiero.
 void dibujarZoomTV(float e) {
@@ -1128,7 +1140,7 @@ void dibujarZoomTV(float e) {
     rotate(giro);
     scale(escalaZoom);
     translate(-ox, -oy);
-    image(imgOficina, camX, camY, camAncho, camAlto);
+    dibujarOficinaConTV();   // la oficina con la TV encendida
     popMatrix();
     float visible = constrain((e - 0.5) / 0.42, 0, 1);
     visible = visible * visible * (3 - 2 * visible);

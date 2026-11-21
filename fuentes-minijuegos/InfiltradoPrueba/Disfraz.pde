@@ -9,15 +9,6 @@
 
 final float DISTANCIA_JEFE = 3;
 final float DISTANCIA_PEGADO = 1.0;   // a menos de esto cualquier vigilante ve que no eres el conserje
-final int[] ZONAS_PROHIBIDAS = {4, 6, 7};   // seguridad, servidor, oficina del rival
-
-boolean enZonaProhibida(Jugador j) {
-  int z = mapa.zonaEn(j.x, j.y);
-  for (int p : ZONAS_PROHIBIDAS) {
-    if (z == p) return true;
-  }
-  return false;
-}
 
 // Cuanto se multiplica la sospecha de quien mira a este jugador.
 // esJefe: si quien mira es el jefe de seguridad. d: distancia.

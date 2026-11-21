@@ -34,8 +34,6 @@ class Mapa {
   ArrayList<float[]> fuentesLuz = new ArrayList<float[]>();   // x, y, r, g, b, radio, fuerza, altura
   float[] inicioX = new float[2];
   float[] inicioY = new float[2];
-  int totalPruebas;
-  int valorBotinTotal;   // suma del valor de todo el botin (Mochila.pde)
   int servidorI = -1, servidorJ = -1;   // un servidor para marcarlo con la flechita
   ArrayList<int[]> lamparas = new ArrayList<int[]>();
 
@@ -88,10 +86,6 @@ class Mapa {
           }
         }
         if (c == 'L') lamparas.add(new int[] {i, j});
-        if (LETRAS_BOTIN.indexOf(c) >= 0) {
-          totalPruebas++;
-          valorBotinTotal += VALOR_BOTIN[LETRAS_BOTIN.indexOf(c)];
-        }
         if (c == 'S' && servidorI < 0) {
           servidorI = i;
           servidorJ = j;
@@ -158,11 +152,6 @@ class Mapa {
 
   int zonaEn(float x, float y) {
     return zona[constrain(floor(x), 0, ancho - 1)][constrain(floor(y), 0, alto - 1)];
-  }
-
-  float corteEn(int i, int j) {
-    if (i < 0 || j < 0 || i >= ancho || j >= alto) return 0;
-    return corte[i][j];
   }
 
   // Los jugadores no pasan por paredes, puertas cerradas ni muebles
@@ -450,9 +439,10 @@ class Mapa {
     if (!visitado[meta]) return camino;
     int paso = meta;
     while (paso != -1) {
-      camino.add(0, new int[] {paso % ancho, paso / ancho});
+      camino.add(new int[] {paso % ancho, paso / ancho});
       paso = anterior[paso];
     }
+    java.util.Collections.reverse(camino);   // se armó desde la meta hacia atrás
     return camino;
   }
 
@@ -517,9 +507,10 @@ class Mapa {
     int paso = j * ancho + i;
     if (anteriorCivil == null || (anteriorCivil[paso] == -1)) return camino;
     while (paso != -1) {
-      camino.add(0, new int[] {paso % ancho, paso / ancho});
+      camino.add(new int[] {paso % ancho, paso / ancho});
       paso = anteriorCivil[paso];
     }
+    java.util.Collections.reverse(camino);
     return camino;
   }
 

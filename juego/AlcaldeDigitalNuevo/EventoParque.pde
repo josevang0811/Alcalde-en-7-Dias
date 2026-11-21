@@ -70,25 +70,19 @@ int tipoDeMinijuego(int mini) {
 String[] partesLlamadaEvento(int mini) {
     if (mini == MINI_LIVES) {
         return new String[] {
-            "Candidato, es Valeria. Pasó algo y la ciudad está llena de gente transmitiendo en vivo en Civitas.",
-            "Varios de esos lives están regando un rumor sin verificar, y cada minuto los ve más gente.",
-            "Reúnete en la plaza del parque. Cuando empiece, llega a cada live y reclámalo con F marcando las flechas: así cuentan la versión verificada.",
-            "El que llegue a más lives gana. Usa un carro si quieres llegar antes, y cuidado con las botellas."
+            "Candidato, es Valeria. Hay lives en el parque regando un rumor sin verificar.",
+            "Llega a cada live y reclámalo con F, eligiendo la respuesta responsable."
         };
     }
     if (mini == MINI_VOLANTES) {
         return new String[] {
-            "Candidato, soy Valeria. Hay un rumor regándose en Civitas: dicen que vas a cerrar el parque central.",
-            "Es falso, pero lo que se riega en la red se cree en la calle. Los cuatro candidatos van al parque a pegar volantes.",
-            "Los tuyos llevan la información verificada, con el enlace para comprobarla. Con E pegas en las carteleras y con Q lanzas botellas.",
-            "Cada cartelera tuya es gente que ve la verdad antes que el rumor. Si te va bien, Nico te escribe."
+            "Candidato, soy Valeria. Dicen que vas a cerrar el parque central, y es falso.",
+            "Ve al parque y pega volantes verificados con E. Con Q lanzas botellas."
         };
     }
     return new String[] {
-        "Candidato, Valeria de nuevo. Hoy se transmite en vivo desde el parque: todo lo que pase ahí se verá en Civitas.",
-        "Cada persona que convenzas es un seguidor que va a compartir tu mensaje con su familia y sus amigos.",
-        "Ve a la plaza de la fuente. Con E convences rápido, pero te lo pueden quitar; con F lo aseguras con una secuencia de flechas, como una conversación de verdad.",
-        "Recuerda: un seguidor convencido con argumentos vale más que mil «me gusta» rápidos."
+        "Candidato, Valeria de nuevo. Hoy hay transmisión en vivo desde el parque.",
+        "Convence gente: con E es rápido, con F conversas y nadie te lo quita."
     };
 }
 
@@ -150,7 +144,6 @@ void volverALaOficina() {
     }
 
     estado = MENU;
-    fotoOficina = null;
     marcarApertura();
     GrafoCiudad ciudad = partida.getCiudad();
     apoyoPuesto = false;
@@ -165,12 +158,12 @@ void volverALaOficina() {
         apoyoEvento = 0;
         int z = partida.barrioConMasApoyo();
         int cambio = partida.registrarEvento(z, premio);
-        avisar("Quedaste de último: " + cambio + " de apoyo en " + ciudad.getNombre(z) + ". Pasa turno desde el libro.");
+        avisar("Quedaste de último: " + cambio + " de apoyo en " + ciudad.getNombre(z) + ". Termina el día con el botón rojo.");
         mostrarTextoFlotante(str(cambio), COLOR_ERROR);
     } else {
         apoyoEvento = 0;
         partida.registrarEvento(Partida.ZONA_SEDE, 0);
-        avisar("Quedaste de " + (puestoEvento + 1) + ".°: esta vez no ganas ni pierdes apoyo. Pasa turno desde el libro.");
+        avisar("Quedaste de " + (puestoEvento + 1) + ".°: esta vez no ganas ni pierdes apoyo. Termina el día con el botón rojo.");
     }
     informeDeEvento(tipoEvento, puestoEvento, premio);   // Impacto.pde
 }
@@ -221,7 +214,7 @@ ArrayList<Mensaje> mensajesApoyo() {
         if (envioConquisto) {
             lista.add(new Mensaje("¡" + ciudad.getNombre(envioBarrio) + " ya es tuyo! Ahora llegamos a sus vecinos.", null, false));
         }
-        lista.add(new Mensaje("Esta ronda ya cuenta como tu jugada: pasa turno desde el libro.", null, false));
+        lista.add(new Mensaje("Esta ronda ya cuenta como tu jugada: termina el día con el botón rojo.", null, false));
     }
     return lista;
 }

@@ -5,11 +5,9 @@
 PImage[] pisoAlfombra = new PImage[2];
 PImage[] pisoMadera = new PImage[2];
 PImage[] pisoBaldosa = new PImage[2];
-PImage pisoSalida;
 PImage[] paredLadrillo = new PImage[2];
 PImage paredNeon, paredNeonLuz, paredLetrero, paredLetreroLuz, paredBaja;
-PImage escritorio, escritorioLuz, servidor, servidorLuz, servidorLuzCopiado;
-PImage armario, farol, farolLuz, prueba;
+PImage servidorLuzCopiado;   // el servidor ya copiado (los demás muebles van en spriteObjeto)
 PImage brillo;   // mancha de luz blanca y suave, se pinta del color de cada luz
 PImage[] pisoAsfalto = new PImage[2];
 PImage[] pisoMetal = new PImage[2];
@@ -49,21 +47,12 @@ void cargarSprites() {
     pisoBaldosa[k] = loadImage("piso_baldosa_" + k + ".png");
     paredLadrillo[k] = loadImage("pared_" + k + ".png");
   }
-  pisoSalida = loadImage("piso_salida.png");
   paredNeon = loadImage("pared_neon.png");
   paredNeonLuz = loadImage("pared_neon_luz.png");
   paredLetrero = loadImage("pared_letrero.png");
   paredLetreroLuz = loadImage("pared_letrero_luz.png");
   paredBaja = loadImage("pared_baja.png");
-  escritorio = loadImage("escritorio.png");
-  escritorioLuz = loadImage("escritorio_luz.png");
-  servidor = loadImage("servidor.png");
-  servidorLuz = loadImage("servidor_luz.png");
   servidorLuzCopiado = loadImage("servidor_luz_copiado.png");
-  armario = loadImage("armario.png");
-  farol = loadImage("farol.png");
-  farolLuz = loadImage("farol_luz.png");
-  prueba = loadImage("prueba.png");
   brillo = loadImage("brillo.png");
   for (int k = 0; k < 2; k++) {
     pisoAsfalto[k] = loadImage("piso_asfalto_" + k + ".png");

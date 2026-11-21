@@ -6,8 +6,8 @@
 // parque, donde se reúnen los otros tres candidatos (manejados por el
 // computador). Cuando están los cuatro empieza la ronda: 60 segundos para
 // pegar volantes en las carteleras del parque y sus calles. Pegar encima del
-// volante de otro le quita el punto. Cada uno tiene 3 botellas: al que le
-// pegan se queda quieto 2 segundos. Al final, el que más puntos tenga gana
+// volante de otro le quita el punto. Las botellas son ilimitadas (con una
+// pausa corta entre una y otra): al que le pegan se queda quieto 2 segundos. Al final, el que más puntos tenga gana
 // apoyo (+20, +10, 0, -5).
 //
 // El dibujo de la ciudad sale de data/mundo/, que se arma con
@@ -65,7 +65,7 @@ void draw() {
   camY += (objY - camY) * min(1, dt * 8);
   limitarCamara();
 
-  background(150, 196, 226);
+  background(89, 132, 159);   // el fondo, con la misma paleta profunda de data/mundo
   dibujarCiudad();
   dibujarHud();
 }
@@ -91,7 +91,7 @@ void keyPressed() {
   } else {
     if (k == 'e' && !accionRapida(yo)) teclaCarro();
     if (k == 'f') accionAsegurar(yo);
-    if (k == 'q' && rondaActiva()) lanzarDe(yo);
+    if (k == 'q' && rondaActiva()) lanzarAlMouse(yo);   // hacia el cursor
   }
   if (modoPrueba && (k == '1' || k == '2' || k == '3') && estadoRonda != RONDA && estadoRonda != CUENTA) {
     evento = k == '1' ? VOLANTES : (k == '2' ? GENTE : LIVES);
@@ -120,6 +120,13 @@ void keyPressed() {
 void keyReleased() {
   teclaCambio(false);
 }
+// <solo-sketch>
+
+// Clic izquierdo en la ronda: la botella va hacia el cursor
+void mousePressed() {
+  if (mouseButton == LEFT) clicLanzar();
+}
+// </solo-sketch>
 
 // El juego principal empieza un evento con esto: el candidato aparece en su
 // sede y los demás salen otra vez de sus puntos.

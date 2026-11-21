@@ -25,6 +25,7 @@ public class Sonidos {
     private Clip envio;
     private Clip exito;
     private Clip fallo;
+    private Clip tic;
     private boolean disponible;
     private Random ruido;
 
@@ -44,6 +45,7 @@ public class Sonidos {
             envio = abrir(barrido());
             exito = abrir(notas(new float[] {523, 659, 784, 1047}, 0.08f, 0.26f));
             fallo = abrir(notas(new float[] {392, 311}, 0.16f, 0.24f));
+            tic = abrir(notas(new float[] {1568}, 0.03f, 0.2f));
             disponible = true;
         } catch (Throwable e) {
             disponible = false;
@@ -101,6 +103,11 @@ public class Sonidos {
     // Dos notas que bajan: la publicacion resto apoyo.
     public void tocarFallo() {
         tocar(fallo);
+    }
+
+    // El tic-tac de los últimos segundos de la ronda (Ronda.pde).
+    public void tocarTic() {
+        tocar(tic);
     }
 
     private void tocar(Clip c) {

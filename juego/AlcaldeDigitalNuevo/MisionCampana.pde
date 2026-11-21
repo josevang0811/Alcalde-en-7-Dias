@@ -28,6 +28,10 @@ int cambioMision;               // cuanto apoyo gano o perdio en El Puerto
 void prepararInfiltrado() {
     mision = new Infiltrado();
     mision.prepararMision();
+    // Valeria habla con la misma voz de Marta, la periodista: la de antes no
+    // sonaba natural. Sus frases se graban otra vez con esta voz la primera
+    // vez que se dicen (con internet) y quedan guardadas en data/voz/.
+    mision.vozAzure = mision.vozPeriodista;
     // las frases fijas de Valeria (las de la misión y las de las tres
     // llamadas) se graban una sola vez para que suenen aunque no haya internet
     StringList llamadas = new StringList();
@@ -35,8 +39,21 @@ void prepararInfiltrado() {
     for (String f : partesLlamadaEvento(MINI_VOLANTES)) llamadas.append(f);
     for (String f : partesLlamadaEvento(MINI_GENTE)) llamadas.append(f);
     for (String f : partesLlamadaEvento(MINI_LIVES)) llamadas.append(f);
+    llamadas.append(mision.TEXTO_RUTA_VALERIA);   // lo que dice sobre el plano de la sede
     mision.precargarVoces(llamadas.array());
     precargarVozPeriodista(frasesFijasPeriodista());
+    // las frases cortas de todas las noticias, para que la llamada tenga voz
+    // aunque después no haya internet
+    ArrayList<String> frases = new ArrayList<String>();
+    for (Noticia n : new Noticiero(0).todas()) {
+        for (String f : frasesCortasDeNoticia(n)) {
+            frases.add(f);
+        }
+        for (String f : frasesEncargo(n)) {   // Encargo.pde
+            frases.add(f);
+        }
+    }
+    precargarVozPeriodista(frases.toArray(new String[0]));
     precargarBienvenida();
     if (mision.musica != null) {
         // la canción de calma suena en todo el juego (oficina, mundo abierto);
@@ -66,10 +83,8 @@ String[] partesLlamadaValeria() {
 
 String[] partesLlamadaMision() {
     return new String[] {
-        "Candidato, soy Valeria. Perdón por llamar así, pero esto no puede esperar.",
-        "Titulares Ya va a publicar mañana un bulo sobre " + BULO_MISION + ".",
-        "Esta noche entras a su sede, copias el servidor con las pruebas y sales sin que te vean. En el aseo hay uniformes de conserje.",
-        "Yo te guío por el auricular. Antes de entrar, estudia bien el plano."
+        "Candidato, soy Valeria. Titulares Ya publicará mañana un bulo sobre " + BULO_MISION + ".",
+        "Entra esta noche a su sede, copia las pruebas y sal sin que te vean. Yo te guío."
     };
 }
 
@@ -89,6 +104,7 @@ void pedirVocesValeria(String[] partes) {
 
 // voz: null para la de Valeria
 void pedirVocesLlamada(String[] partes, String voz) {
+    callarVoces();   // las de la llamada anterior se cierran
     vocesValeria = new Clip[partes.length];
     parteConVoz = -1;
     if (mision == null || !mision.valeriaConVoz()) {
@@ -113,12 +129,35 @@ class PedidoVocesValeria implements Runnable {
     public void run() {
         for (int i = 0; i < partes.length; i++) {
             try {
-                destino[i] = mision.vozDeAzure(partes[i], voz);
+                Clip c = mision.vozDeAzure(partes[i], voz);
+                if (destino != vocesValeria) {
+                    c.close();   // ya empezó otra llamada: esta voz no se va a oír
+                    return;
+                }
+                destino[i] = c;
             } catch (Exception e) {
                 println("Voz de la llamada: " + e.getMessage());
             }
         }
     }
+}
+
+// Para la voz que suena y cierra las de la llamada, para no dejar líneas
+// de audio abiertas.
+void callarVoces() {
+    if (vozSonando != null) {
+        vozSonando.stop();
+        vozSonando = null;
+    }
+    if (vocesValeria != null) {
+        for (Clip c : vocesValeria) {
+            if (c != null) {
+                c.close();
+            }
+        }
+    }
+    vocesValeria = null;
+    parteConVoz = -1;
 }
 
 // Las frases fijas de la periodista (saludos y despedidas) se graban al
@@ -244,12 +283,11 @@ void volverALaCampana() {
     }
     mision.callarValeria();
     estado = MENU;
-    fotoOficina = null;
     marcarApertura();
     GrafoCiudad ciudad = partida.getCiudad();
     String cambio = (cambioMision >= 0 ? "+" : "") + cambioMision;
-    avisar(exito ? "¡Misión cumplida! " + cambio + " de apoyo en " + ciudad.getNombre(ZONA_BULO) + ". Pasa turno desde el libro."
-        : "La misión salió mal: " + cambio + " de apoyo en " + ciudad.getNombre(ZONA_BULO) + ". Pasa turno desde el libro.");
+    avisar(exito ? "¡Misión cumplida! " + cambio + " de apoyo en " + ciudad.getNombre(ZONA_BULO) + ". Termina el día con el botón rojo."
+        : "La misión salió mal: " + cambio + " de apoyo en " + ciudad.getNombre(ZONA_BULO) + ". Termina el día con el botón rojo.");
     mostrarTextoFlotante(cambio, cambioMision >= 0 ? COLOR_EXITO : COLOR_ERROR);
 }
 

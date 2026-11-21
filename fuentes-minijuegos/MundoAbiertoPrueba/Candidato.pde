@@ -39,10 +39,6 @@ class Candidato extends Movil {
     }
   }
 
-  boolean esJugador() {
-    return bot == null;
-  }
-
   public float px() {
     return x;
   }

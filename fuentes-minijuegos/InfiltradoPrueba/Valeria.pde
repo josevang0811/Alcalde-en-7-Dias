@@ -181,7 +181,6 @@ void eventoValeria(String tipo, int prioridad, String detalle, String fija) {
 boolean[] vTarj = new boolean[5];
 int vAlarma, vTarjetas, vDigitos, vNoqueos, vBotin, vOportVistas, vOportHechas;
 boolean vAlerta, vSospecha, vServidor, vPistaA, vPistaR, vDisfraz, vAtrapado;
-String vAviso = "";
 int vEstado = -1;
 float sinAlerta, quieto;
 
@@ -200,7 +199,6 @@ class RespuestaValeria {
   String texto;
   Clip voz;
   float segundos;
-  boolean conIA;
 }
 
 void iniciarValeria() {
@@ -218,9 +216,18 @@ void reiniciarValeria() {
   vEstado = -1;
 }
 
-void callarValeria() {
-  if (vozActual != null) vozActual.stop();
+// Para la voz que suena y la cierra: cada frase trae su propio Clip y no
+// se vuelve a usar.
+void soltarVoz() {
+  if (vozActual != null) {
+    vozActual.stop();
+    vozActual.close();
+  }
   vozActual = null;
+}
+
+void callarValeria() {
+  soltarVoz();
   fraseValeria = "";
   respuestaLista = null;
   esperandoValeria = false;
@@ -397,7 +404,6 @@ void detectarEventosValeria(float dt) {
   vPistaR = pistaRoja;
   vNoqueos = noqueos;
   vBotin = botinLlevado();
-  vAviso = aviso;
 }
 
 boolean alertaReciente;
@@ -412,7 +418,6 @@ void leerEstadoValeria() {
   vPistaR = pistaRoja;
   vNoqueos = noqueos;
   vBotin = botinLlevado();
-  vAviso = aviso;
   vAlerta = false;
   vSospecha = false;
   vAtrapado = false;
@@ -597,7 +602,7 @@ void actualizarValeria(float dt) {
 
 void decir(RespuestaValeria r) {
   if (r.texto == null || r.texto.equals("")) return;
-  if (vozActual != null) vozActual.stop();
+  soltarVoz();
   fraseValeria = r.texto;
   tiempoFrase = 0;
   vozActual = r.voz;
@@ -648,7 +653,6 @@ class PedidoValeria implements Runnable {
     if (usuario != null) {
       try {
         r.texto = limpiarFrase(pedirAlModelo(PERSONA_VALERIA, usuario, 90));
-        r.conIA = true;
         fallosSeguidos = 0;
       } catch (Exception e) {
         fallosSeguidos++;
@@ -685,7 +689,7 @@ String limpiarFrase(String t) {
 // ---------------------------------------------------------------- internet
 
 byte[] enviarPost(String direccion, String[][] cabeceras, byte[] cuerpo, int espera) throws Exception {
-  java.net.HttpURLConnection c = (java.net.HttpURLConnection) new java.net.URL(direccion).openConnection();
+  java.net.HttpURLConnection c = (java.net.HttpURLConnection) java.net.URI.create(direccion).toURL().openConnection();
   c.setRequestMethod("POST");
   c.setDoOutput(true);
   c.setConnectTimeout(2500);
@@ -777,8 +781,12 @@ Clip vozDeAzure(String texto, String voz) throws Exception {
     if (!hayRed()) throw new RuntimeException("sin internet: la frase sale solo en texto");
     wav = enviarPost("https://" + regionAzure + ".tts.speech.microsoft.com/cognitiveservices/v1", cab, ssml.getBytes("UTF-8"), 4000);
     try {
+      // se escribe aparte y luego se renombra: si se corta a la mitad no
+      // queda un archivo dañado que después se tome por bueno
       guardada.getParentFile().mkdirs();
-      java.nio.file.Files.write(guardada.toPath(), wav);
+      java.io.File temporal = new java.io.File(guardada.getPath() + ".tmp");
+      java.nio.file.Files.write(temporal.toPath(), wav);
+      java.nio.file.Files.move(temporal.toPath(), guardada.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
     } catch (Exception e) {
       println("Valeria: no se pudo guardar la voz: " + e.getMessage());
     }

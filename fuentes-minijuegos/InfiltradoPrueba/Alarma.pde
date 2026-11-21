@@ -95,33 +95,3 @@ float rangoExtraAlarma() {
 boolean tablerosBloqueados() {
   return nivelAlarma >= 2;
 }
-
-// Nivel de alarma debajo del estado de alerta (arriba a la derecha)
-void dibujarNivelAlarma(float derecha, float arriba) {
-  float e = escala;
-  float w = 230 * e;
-  float h = nivelAlarma == 3 ? 58 * e : 40 * e;
-  float x = derecha - w;
-  panel(x, arriba, w, h);
-  textFont(letraChica);
-  textAlign(LEFT, TOP);
-  fill(160);
-  text("Alarma", x + 10 * e, arriba + 8 * e);
-  color[] colores = {NEON_VERDE, COLOR_AMBAR, #FF7A3D, COLOR_RIVAL};
-  for (int k = 0; k < 3; k++) {
-    float sx = x + 66 * e + k * 22 * e;
-    noStroke();
-    fill(k < nivelAlarma ? colores[nivelAlarma] : color(45, 52, 78));
-    rect(sx, arriba + 10 * e, 18 * e, 9 * e, 2 * e);
-  }
-  fill(colores[nivelAlarma]);
-  textAlign(RIGHT, TOP);
-  text(NOMBRES_ALARMA[nivelAlarma], x + w - 10 * e, arriba + 8 * e);
-  textAlign(LEFT, TOP);
-  fill(130);
-  text("Nivel " + nivelAlarma + " de 3", x + 10 * e, arriba + 22 * e);
-  if (nivelAlarma == 3) {
-    fill((frameCount / 15) % 2 == 0 ? COLOR_RIVAL : color(242, 242, 233));
-    text("La policía llega en " + ceil(max(0, tiempoPolicia)) + " s", x + 10 * e, arriba + 38 * e);
-  }
-}

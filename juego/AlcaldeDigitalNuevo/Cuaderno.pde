@@ -15,14 +15,13 @@
 // la misma tabla, así siempre coinciden.
 
 final float LIBRO_W = 1043, LIBRO_H = 732;
-PImage imgLibroHabilidades, imgNodoAbierto, imgNodoCerrado, imgAristaLibro, imgAnilloNodo;
+PImage imgLibroHabilidades, imgNodoAbierto, imgNodoCerrado, imgAristaLibro;
 
 void cargarLibroHabilidades() {
     imgLibroHabilidades = loadImage("libro_habilidades.png");
     imgNodoAbierto = loadImage("nodo_abierto.png");
     imgNodoCerrado = loadImage("nodo_cerrado.png");
     imgAristaLibro = loadImage("arista_libro.png");
-    imgAnilloNodo = loadImage("anillo_nodo.png");
 }
 
 // ===========================================================================
@@ -144,7 +143,6 @@ void pantallaArbol() {
     // habilidad elegida con clic
     dibujarPaginaDerecha(nodoBajoMouse != null ? nodoBajoMouse : nodoSeleccionado);
     popMatrix();
-    dibujarPasarTurnoLibro();
 
     botonVolverMenu.dibujar();
     textoPixel("LIBRO DE CAMPAÑA · TURNO " + turnoVisible() + " DE " + Partida.TURNOS_TOTALES, width / 2,
@@ -427,33 +425,11 @@ void pedirCursorManoSi(boolean condicion) {
     }
 }
 
-// El botón de pasar turno: una etiqueta de papel con letra pixel, debajo del libro.
-float[] cajaPasarTurno() {
-    float w = pcAncho(22), h = pcAlto(6.2);
-    return new float[] {pcX(50) - w / 2, pcY(LIBRO_ARRIBA + LIBRO_ALTO + 2.2), w, h};
-}
-
-boolean mouseEnPasarTurno() {
-    float[] c = cajaPasarTurno();
-    return !partidaTerminada() && mouseX >= c[0] && mouseX <= c[0] + c[2] && mouseY >= c[1] && mouseY <= c[1] + c[3];
-}
-
-void dibujarPasarTurnoLibro() {
-    if (partidaTerminada()) {
-        return;
-    }
-    float[] c = cajaPasarTurno();
-    boolean encima = mouseEnPasarTurno();
-    pedirCursorManoSi(encima);
-    String texto = partida.getTurno() >= Partida.TURNOS_TOTALES ? "TERMINAR CAMPAÑA" : "PASAR TURNO";
-    float celda = c[3] / 13;
-    float sube = encima ? celda : 0;
-    noStroke();
-    fill(COLOR_SOMBRA);
-    rect(c[0] + celda, c[1] + celda, c[2], c[3]);
-    fill(encima ? #e8584d : #2a1a18);
-    rect(c[0], c[1] - sube, c[2], c[3]);
-    textoPixel(texto, c[0] + c[2] / 2, c[1] + c[3] / 2 - sube, celda, encima ? #fff7e6 : #f2eee4, CENTER, CENTER);
+// Si el mouse está sobre el libro (con un margen; el libro va un poco girado)
+boolean mouseSobreLibro() {
+    float[] m = mouseEnLibro();
+    float margen = libroAncho * 0.02;
+    return m[0] >= libroX - margen && m[0] <= libroX + libroAncho + margen && m[1] >= libroY - margen && m[1] <= libroY + libroAlto + margen;
 }
 
 boolean sePuedeComprar(Nodo n) {
@@ -479,7 +455,7 @@ String textoEstadoHabilidad(Nodo n) {
     }
     if (!partida.puedePagar(n.getCosto())) {
         int faltan = n.getCosto() - partida.getPuntos();
-        return "Te faltan " + (faltan == 1 ? "1 punto" : faltan + " puntos") + ". Pasa turno para ganar más.";
+        return "Te faltan " + (faltan == 1 ? "1 punto" : faltan + " puntos") + ". Termina el día para ganar más.";
     }
     return n == nodoSeleccionado ? "¡Disponible!" : "¡Disponible! Haz clic en ella para elegirla.";
 }
@@ -503,8 +479,8 @@ void clicEnCuaderno() {
     }
     if (botonVolverMenu.contiene(mouseX, mouseY)) {
         irA(MENU);
-    } else if (mouseEnPasarTurno()) {
-        pasarTurno();
+    } else if (!mouseSobreLibro() && !mouseEnCosto()) {
+        irA(MENU);   // un clic fuera del libro lo cierra
     } else if (mouseEnCosto() && nodoSeleccionado != null && !nodoSeleccionado.getDesbloqueada()) {
         if (sePuedeComprar(nodoSeleccionado)) {
             intentarDesbloquear(nodoSeleccionado);

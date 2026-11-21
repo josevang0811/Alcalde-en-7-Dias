@@ -39,7 +39,6 @@ final int JUGANDO = 1;
 final int GANASTE = 2;
 final int PERDISTE = 3;
 final int RECONOCIMIENTO = 4;
-final int ELEGIR_ROL = 5;
 
 // Estados de un vigilante
 final int V_PATRULLA = 0;
@@ -68,17 +67,16 @@ ArrayList<Particula> particulas = new ArrayList<Particula>();
 ArrayList<Civil> civiles = new ArrayList<Civil>();
 
 final float TIEMPO_COPIA = 7;   // segundos que tarda copiar el servidor (un jugador)
-final float TIEMPO_RECONOCIMIENTO = 15;
+final float TIEMPO_RECONOCIMIENTO = 10;
 final float RADIO_LANZAMIENTO = 7;   // hasta donde llega una botella (baldosas)
 final float RUIDO_BOTELLA = 13;         // radio del ruido al romperse (atrae desde lejos)
 
 boolean[] tarjetas = new boolean[5];   // 1 roja, 2 azul, 3 amarilla, 4 codigo (se comparten en cooperativo)
-boolean chatLeido, tableroVisto, cuadernoVisto;   // lo que se reviso en la oficina del rival
+boolean chatLeido, tableroVisto;   // lo que se reviso en la oficina del rival
 int ventana;          // 0 nada, 1 chat del rival, 2 tablero de conspiracion, 3 cuaderno, 4 TV
 Jugador quienLee;
 float progresoServidor;
 boolean servidorCopiado;
-int pruebasExtraidas;
 int valorExtraido;
 int vecesDescubierto;
 int nivelAlarma;      // 0 a 3: sube cada vez que algo sale mal
@@ -146,7 +144,6 @@ void dibujar() {
   popMatrix();
   dibujarHud(dt);
   if (estado == INICIO) dibujarPantallaInicio();
-  if (estado == ELEGIR_ROL) dibujarElegirRol();
   if (estado == CREDITOS) {
     actualizarCreditos(dt);
     dibujarCreditos();
@@ -168,8 +165,9 @@ void iniciarMision() {
     jugadores.add(new Jugador(2, mapa.inicioX[1], mapa.inicioY[1], NEON_VERDE));
   }
   // el jugador 1 tiene el rol elegido y el 2 (si hay) el otro
-  jugadores.get(0).rol = rolElegido;
-  if (jugadores.size() > 1) jugadores.get(1).rol = 1 - rolElegido;
+  // ya no se elige habilidad: el jugador 1 es el hacker y el 2 la sombra
+  jugadores.get(0).rol = ROL_HACKER;
+  if (jugadores.size() > 1) jugadores.get(1).rol = 1 - ROL_HACKER;
 
   // Cada vigilante recibe su ronda como una lista de baldosas (columna, fila).
   // Entre un punto y el siguiente el camino lo busca BFS.
@@ -220,6 +218,7 @@ void iniciarMision() {
   progresoEmpujar = 0;
   tiempoPolicia = 0;
   prepararCodigo();
+  calcularRutaMision();
   mapaAbierto = false;
   resalteZona = new float[NOMBRES_ZONA.length];
   prepararOportunidades();
@@ -238,11 +237,9 @@ void iniciarMision() {
   tarjetas = new boolean[5];
   chatLeido = false;
   tableroVisto = false;
-  cuadernoVisto = false;
   ventana = 0;
   progresoServidor = 0;
   servidorCopiado = false;
-  pruebasExtraidas = 0;
   vecesDescubierto = 0;
   tiempoMision = 0;
   destelloAlarma = 0;
@@ -269,6 +266,7 @@ void empezar(int cuantos) {
 
 void irAlReconocimiento() {
   estado = RECONOCIMIENTO;
+  decirRutaValeria();
   tiempoReconocimiento = tiempoReconocimientoTotal();
   camX = centroPlanoX();
   camY = centroPlanoY();
@@ -287,8 +285,198 @@ void actualizarReconocimiento(float dt) {
 
 void entrar() {
   estado = JUGANDO;
-  avisar("Revisa la sede y al final copia el servidor: después solo queda escapar");
+  soltarVoz();
+  if (musica != null) musica.atenuar = 1;
+  avisar("Sigue la ruta: copia el servidor y sal por la camioneta (G para verla)");
 }
+
+// ---------------------------------------------------------------------------
+// La ruta de la misión: desde la entrada, las tarjetas que hagan falta, el
+// servidor y la salida en la camioneta. Se calcula con BFS sobre la
+// cuadrícula (el jugador no pasa por puertas cerradas si no tiene su
+// tarjeta). Lo demás de la sede sigue ahí, pero ya no se marca.
+// ---------------------------------------------------------------------------
+
+final String TEXTO_RUTA_VALERIA = "Candidato, esta es la ruta que tiene que seguir: llegue al servidor, copie la información y salga por la camioneta.";
+
+ArrayList<int[]> rutaMision = new ArrayList<int[]>();   // las baldosas, en orden
+ArrayList<int[]> paradasRuta = new ArrayList<int[]>();  // {i, j, tipo}: 1-4 tarjeta, 5 servidor, 6 salida
+boolean[] tarjetaEnRuta = new boolean[5];
+
+boolean pasoJugador(int i, int j, boolean[] t) {
+  if (i < 0 || j < 0 || i >= mapa.ancho || j >= mapa.alto) return false;
+  if (mapa.esPuertaCerrada(i, j)) return t[mapa.en(i, j) - '0'];
+  return !mapa.esSolido(i, j);
+}
+
+// BFS desde (i0, j0) hasta la baldosa más cercana que cumpla "meta":
+// 1 tarjeta sin recoger, 2 junto al servidor, 3 camioneta
+ArrayList<int[]> caminoRuta(int i0, int j0, boolean[] t, int meta) {
+  int an = mapa.ancho, al = mapa.alto;
+  boolean[] visto = new boolean[an * al];
+  int[] antes = new int[an * al];
+  java.util.ArrayDeque<Integer> cola = new java.util.ArrayDeque<Integer>();
+  int ini = j0 * an + i0;
+  visto[ini] = true;
+  antes[ini] = -1;
+  cola.add(ini);
+  int[] di = {1, -1, 0, 0}, dj = {0, 0, 1, -1};
+  int fin = -1;
+  while (!cola.isEmpty()) {
+    int a = cola.poll();
+    int ci = a % an, cj = a / an;
+    if (esMetaRuta(ci, cj, t, meta)) {
+      fin = a;
+      break;
+    }
+    for (int k = 0; k < 4; k++) {
+      int ni = ci + di[k], nj = cj + dj[k];
+      if (!pasoJugador(ni, nj, t)) continue;
+      int n = nj * an + ni;
+      if (visto[n]) continue;
+      visto[n] = true;
+      antes[n] = a;
+      cola.add(n);
+    }
+  }
+  ArrayList<int[]> camino = new ArrayList<int[]>();
+  for (int p = fin; p >= 0; p = antes[p]) camino.add(new int[] {p % an, p / an});
+  java.util.Collections.reverse(camino);   // se armó desde la meta hacia atrás
+  return camino;
+}
+
+boolean esMetaRuta(int i, int j, boolean[] t, int meta) {
+  char c = mapa.en(i, j);
+  if (meta == 1) {
+    int k = "-rbyn".indexOf(c);
+    return k >= 1 && !t[k];
+  }
+  if (meta == 2) {
+    return abs(i - mapa.servidorI) + abs(j - mapa.servidorJ) == 1;
+  }
+  return c == 'E';
+}
+
+void calcularRutaMision() {
+  rutaMision.clear();
+  paradasRuta.clear();
+  tarjetaEnRuta = new boolean[5];
+  if (mapa.servidorI < 0) return;
+  boolean[] t = new boolean[5];
+  int i = floor(mapa.inicioX[0]), j = floor(mapa.inicioY[0]);
+  // hasta el servidor; si no se llega, primero la tarjeta más cercana que se alcance
+  for (int intento = 0; intento < 5; intento++) {
+    ArrayList<int[]> alServidor = caminoRuta(i, j, t, 2);
+    if (alServidor.size() > 0) {
+      rutaMision.addAll(alServidor);
+      int[] f = alServidor.get(alServidor.size() - 1);
+      i = f[0];
+      j = f[1];
+      paradasRuta.add(new int[] {mapa.servidorI, mapa.servidorJ, 5});
+      break;
+    }
+    ArrayList<int[]> aTarjeta = caminoRuta(i, j, t, 1);
+    if (aTarjeta.size() == 0) return;
+    rutaMision.addAll(aTarjeta);
+    int[] f = aTarjeta.get(aTarjeta.size() - 1);
+    i = f[0];
+    j = f[1];
+    int k = "-rbyn".indexOf(mapa.en(i, j));
+    t[k] = true;
+    tarjetaEnRuta[k] = true;
+    paradasRuta.add(new int[] {i, j, k});
+  }
+  // del servidor a la camioneta
+  ArrayList<int[]> aSalida = caminoRuta(i, j, t, 3);
+  if (aSalida.size() > 0) {
+    rutaMision.addAll(aSalida);
+    int[] f = aSalida.get(aSalida.size() - 1);
+    paradasRuta.add(new int[] {f[0], f[1], 6});
+  }
+}
+
+String nombreParada(int tipo) {
+  String[] n = {"", "TARJETA ROJA", "TARJETA AZUL", "TARJETA AMARILLA", "CÓDIGO", "SERVIDOR", "SALIDA: CAMIONETA"};
+  return n[tipo];
+}
+
+color colorParada(int tipo) {
+  if (tipo == 1) return COLOR_RIVAL;
+  if (tipo == 2) return #3E7BFF;
+  if (tipo == 4) return NEON_CIAN;
+  if (tipo == 6) return NEON_VERDE;
+  return COLOR_AMBAR;
+}
+
+// La ruta sobre el plano (reconocimiento y mapa grande): una línea gruesa
+// con un brillo que avanza, y las paradas numeradas
+void dibujarRutaMision() {
+  if (rutaMision.size() < 2) return;
+  strokeCap(ROUND);
+  for (int capa = 0; capa < 2; capa++) {
+    stroke(capa == 0 ? color(15, 20, 36, 230) : color(110, 255, 130));
+    strokeWeight((capa == 0 ? 12 : 6) * escala);
+    for (int k = 0; k + 1 < rutaMision.size(); k++) {
+      int[] a = rutaMision.get(k), b = rutaMision.get(k + 1);
+      line(pantallaX(a[0] + 0.5, a[1] + 0.5), pantallaY(a[0] + 0.5, a[1] + 0.5),
+        pantallaX(b[0] + 0.5, b[1] + 0.5), pantallaY(b[0] + 0.5, b[1] + 0.5));
+    }
+  }
+  // un punto de luz que recorre la ruta para que se note hacia dónde va
+  noStroke();
+  int n = rutaMision.size();
+  for (int s = 0; s < 3; s++) {
+    float pos = ((millis() / 60.0) + s * n / 3.0) % n;
+    int[] a = rutaMision.get(floor(pos)), b = rutaMision.get(min(n - 1, floor(pos) + 1));
+    float f = pos - floor(pos);
+    float x = lerp(a[0], b[0], f) + 0.5, y = lerp(a[1], b[1], f) + 0.5;
+    fill(255, 255, 255, 230);
+    ellipse(pantallaX(x, y), pantallaY(x, y), 9 * escala, 9 * escala);
+  }
+  // las paradas
+  for (int k = 0; k < paradasRuta.size(); k++) {
+    int[] p = paradasRuta.get(k);
+    etiquetaMundo(p[0] + 0.5, p[1] + 0.5, (k + 1) + " · " + nombreParada(p[2]), colorParada(p[2]));
+  }
+  // la entrada
+  etiquetaMundo(mapa.inicioX[0], mapa.inicioY[0], "TÚ ENTRAS AQUÍ", color(242, 242, 233));
+}
+
+// ¿Esta baldosa es una parada de la ruta que todavía falta?
+boolean paradaPendiente(int i, int j, char c) {
+  int k = "-rbyn".indexOf(c);
+  if (k >= 1) return tarjetaEnRuta[k] && !tarjetas[k];
+  if (c == 'S') return !servidorCopiado && i == mapa.servidorI && j == mapa.servidorJ;
+  if (c == 'E') return servidorCopiado;
+  return false;
+}
+
+// Lo que dice Valeria sobre el plano (con su voz si hay)
+void decirRutaValeria() {
+  fraseValeria = "";
+  if (!valeriaConVoz()) return;
+  final String texto = TEXTO_RUTA_VALERIA;
+  Thread h = new Thread(new Runnable() {
+    public void run() {
+      try {
+        Clip c = vozDeAzure(texto);
+        if (estado != RECONOCIMIENTO) {
+          c.close();
+          return;
+        }
+        soltarVoz();
+        vozActual = c;
+        if (musica != null) musica.atenuar = 0.35;
+        c.start();
+      } catch (Exception e) {
+        println("Valeria (ruta): sin voz");
+      }
+    }
+  });
+  h.setDaemon(true);
+  h.start();
+}
+
 
 // Zoom con el que cabe toda la sede en la pantalla
 float zoomPlano() {
@@ -500,7 +688,6 @@ void usar(Jugador j) {
   }
   if (!soloEscapar() && mapa.cercano(j.x, j.y, 'U', 1.6) != null) {
     abrirVentana(j, 3);
-    cuadernoVisto = true;
     descubrirOportunidad(2);
     return;
   }
@@ -569,7 +756,6 @@ void entrarDucto(Jugador j, int rejilla) {
   j.enDucto = true;
   sonar("ducto");
   j.escondido = true;
-  j.rejillaOrigen = rejilla;
   j.destinosDucto = destinos;
   j.distanciasDucto = dist;
   j.opcionDucto = 0;
@@ -788,10 +974,8 @@ void perder(String motivo) {
 }
 
 void ganar() {
-  pruebasExtraidas = 0;
   valorExtraido = 0;
   for (Jugador j : jugadores) {
-    pruebasExtraidas += j.pruebas;
     valorExtraido += j.valorBotin;
   }
   if (oportunidadHecha[1]) valorExtraido += 3;   // la foto del tablero cuenta como prueba
@@ -852,7 +1036,6 @@ void teclaPresionada() {
     if (keyCode == LEFT) flechaIzq = true;
     if (keyCode == RIGHT) flechaDer = true;
     if (keyCode == SHIFT) teclaShift = true;
-    if (estado == ELEGIR_ROL && (keyCode == LEFT || keyCode == RIGHT)) rolElegido = 1 - rolElegido;
     // El jugador 2 elige en la consola con las flechas
     if (estado == JUGANDO && jugadores.size() > 1 && usandoConsola(jugadores.get(1))) {
       if (keyCode == UP) moverOpcionConsola(-1);
@@ -871,7 +1054,6 @@ void teclaPresionada() {
     if (!teclaEnter && desdeCampana && (estado == GANASTE || estado == PERDISTE)) volverALaCampana();
     else if (!teclaEnter && estado == CREDITOS) cerrarCreditos();
     else if (!teclaEnter && estado == LLAMADA) colgar();
-    else if (!teclaEnter && estado == ELEGIR_ROL) empezar(numJugadores);
     else if (!teclaEnter && estado == RECONOCIMIENTO) entrar();
     else if (!teclaEnter && estado == JUGANDO && jugadores.size() > 1) {
       jugadores.get(1).pulsoUsar = true;
@@ -915,15 +1097,9 @@ void alPresionar(char c) {
   if (estado == INICIO) {
     if (c == '1' || c == '2') {
       numJugadores = c == '1' ? 1 : 2;
-      iniciarMision();
-      estado = ELEGIR_ROL;
-      prepararLlamada();   // Valeria va escribiendo la llamada mientras se elige el rol
+      prepararLlamada();
+      empezar(numJugadores);   // ya no se elige habilidad
     }
-    return;
-  }
-  if (estado == ELEGIR_ROL) {
-    if (c == 'a' || c == 'd') rolElegido = 1 - rolElegido;
-    if (c == 'e' || c == ' ') empezar(numJugadores);
     return;
   }
   if (estado == RECONOCIMIENTO) {
@@ -995,8 +1171,9 @@ void alPresionar(char c) {
 // Dentro de Alcalde Digital, reiniciar es volver a elegir el rol (sin la
 // llamada ni la pantalla de inicio).
 void reintentarMision() {
+  // ya no se elige habilidad: se aparece en la sede y se ve la ruta
   iniciarMision();
-  estado = ELEGIR_ROL;
+  empezar(numJugadores);
 }
 
 
@@ -1101,36 +1278,6 @@ boolean tablerosBloqueados() {
   return nivelAlarma >= 2;
 }
 
-// Nivel de alarma debajo del estado de alerta (arriba a la derecha)
-void dibujarNivelAlarma(float derecha, float arriba) {
-  float e = escala;
-  float w = 230 * e;
-  float h = nivelAlarma == 3 ? 58 * e : 40 * e;
-  float x = derecha - w;
-  panel(x, arriba, w, h);
-  textFont(letraChica);
-  textAlign(LEFT, TOP);
-  fill(160);
-  text("Alarma", x + 10 * e, arriba + 8 * e);
-  color[] colores = {NEON_VERDE, COLOR_AMBAR, #FF7A3D, COLOR_RIVAL};
-  for (int k = 0; k < 3; k++) {
-    float sx = x + 66 * e + k * 22 * e;
-    noStroke();
-    fill(k < nivelAlarma ? colores[nivelAlarma] : color(45, 52, 78));
-    rect(sx, arriba + 10 * e, 18 * e, 9 * e, 2 * e);
-  }
-  fill(colores[nivelAlarma]);
-  textAlign(RIGHT, TOP);
-  text(NOMBRES_ALARMA[nivelAlarma], x + w - 10 * e, arriba + 8 * e);
-  textAlign(LEFT, TOP);
-  fill(130);
-  text("Nivel " + nivelAlarma + " de 3", x + 10 * e, arriba + 22 * e);
-  if (nivelAlarma == 3) {
-    fill((frameCount / 15) % 2 == 0 ? COLOR_RIVAL : color(242, 242, 233));
-    text("La policía llega en " + ceil(max(0, tiempoPolicia)) + " s", x + 10 * e, arriba + 38 * e);
-  }
-}
-
 
 // ======================================================================
 // Audio.pde
@@ -1152,8 +1299,8 @@ void dibujarNivelAlarma(float derecha, float arriba) {
 // Efectos: WAV cortos de data/sfx/, cada uno con su volumen y tres copias para
 // que puedan sonar encima de si mismos.
 
-final int M_CALMA = 0, M_TENSION = 1, M_ALERTA = 2, M_ESCAPE = 3, M_MENU = 4;
-final String[] PISTAS = {"calma", "tension", "alerta", "escape", "menu"};
+final int M_CALMA = 0, M_TENSION = 1, M_ALERTA = 2, M_ESCAPE = 3, M_MENU = 4, M_VICTORIA = 5;
+final String[] PISTAS = {"calma", "tension", "alerta", "escape", "menu", "victoria"};
 final float VOLUMEN_MUSICA = 0.55;
 final float VOLUMEN_EFECTOS = 0.8;
 
@@ -1266,9 +1413,9 @@ void sonar(String nombre) {
 
 // Que momento de la musica toca segun lo que pasa en la mision
 int momentoMusica() {
-  if (estado == INICIO || estado == ELEGIR_ROL || estado == CREDITOS || estado == LLAMADA) return M_MENU;
+  if (estado == INICIO || estado == CREDITOS || estado == LLAMADA) return M_MENU;
   if (estado == RECONOCIMIENTO) return M_CALMA;
-  if (estado == GANASTE) return M_ESCAPE;
+  if (estado == GANASTE) return M_VICTORIA;   // otra música: la de ganar
   if (estado == PERDISTE) return M_TENSION;
   boolean alerta = nivelAlarma >= 3;
   boolean tension = false;
@@ -1295,9 +1442,9 @@ void actualizarMusica() {
 // Mezclador de la musica en su propio hilo
 class Musica implements Runnable {
   final int FRECUENCIA = 22050;
-  short[][] pistas = new short[5][];   // en short y no en float: las canciones son largas y asi ocupan la mitad
-  int[] posicion = new int[5];
-  float[] ganancia = new float[5];
+  short[][] pistas = new short[PISTAS.length][];   // en short y no en float: las canciones son largas y asi ocupan la mitad
+  int[] posicion = new int[PISTAS.length];
+  float[] ganancia = new float[PISTAS.length];
   volatile int momento = M_MENU;
   volatile float atenuar = 1;   // baja la musica mientras habla Valeria
   volatile float volumenUsuario = 1;   // el de Opciones (Alcalde Digital)
@@ -1305,13 +1452,14 @@ class Musica implements Runnable {
 
   Musica() throws Exception {
     musicaPropia = false;
-    for (int k = 0; k < 5; k++) {
+    for (int k = 0; k < PISTAS.length; k++) {
       short[] propia = leerWavCorto(dataPath("musica/" + PISTAS[k] + ".wav"));
       if (propia != null) musicaPropia = true;   // basta con una canción propia
       pistas[k] = propia != null ? propia : leerWavCorto(dataPath("musica_respaldo/" + PISTAS[k] + ".wav"));
     }
-    // sin pista de menu: se usa la de calma
+    // sin pista de menu: se usa la de calma; sin la de ganar, la de escapar
     if (pistas[M_MENU] == null) pistas[M_MENU] = pistas[M_CALMA];
+    if (pistas[M_VICTORIA] == null) pistas[M_VICTORIA] = pistas[M_ESCAPE];
   }
 
   public void run() {
@@ -1325,14 +1473,18 @@ class Musica implements Runnable {
       float pasoFundido = bloque / (1.5 * FRECUENCIA);   // 1,5 s de fundido
       while (true) {
         int m = momento;
-        atenuacion += constrain(atenuar - atenuacion, -0.03, 0.03);
-        for (int k = 0; k < 5; k++) {
+        if (atenuar <= 0.001) {
+          atenuacion = 0;   // a silencio: de una vez
+        } else {
+          atenuacion += constrain(atenuar - atenuacion, -0.03, 0.012);   // y vuelve poco a poco (unos 4 s)
+        }
+        for (int k = 0; k < PISTAS.length; k++) {
           float meta = k == m ? 1 : 0;
           ganancia[k] += constrain(meta - ganancia[k], -pasoFundido, pasoFundido);
         }
         for (int i = 0; i < bloque; i++) {
           float v = 0;
-          for (int k = 0; k < 5; k++) {
+          for (int k = 0; k < PISTAS.length; k++) {
             if (ganancia[k] <= 0.001 || pistas[k] == null) continue;
             // la de menu comparte datos con calma: no se avanza dos veces
             if (k == M_MENU && pistas[M_MENU] == pistas[M_CALMA]) {
@@ -1591,12 +1743,6 @@ class CamaraSeguridad {
 //   Asistente de IA    la habilidad del rol se recarga un 30 % mas rapido
 //   Bots de difusion   las camaras tardan mas en verte
 
-final String[] HERRAMIENTAS = {"Volantes", "Megáfono", "Perfil verificado", "Libreta de notas",
-  "Fuente confiable", "Rueda de prensa", "Asistente de IA", "Bots de difusión"};
-final String[] EFECTO_HERRAMIENTA = {"+2 paquetes para lanzar", "lo que lanzas suena más fuerte",
-  "el jefe te reconoce más de cerca", "reconocimiento de 25 s", "sabes 2 dígitos del código",
-  "una respuesta de radio más", "tu habilidad se recarga más rápido", "las cámaras tardan más en verte"};
-
 String barrioCampana = "La Colina";
 int apoyoCampana = 45;
 String buloCampana = "agua contaminada en El Puerto";
@@ -1666,7 +1812,7 @@ void aplicarHerramientas() {
 }
 
 float tiempoReconocimientoTotal() {
-  return tieneHerramienta("Libreta de notas") ? 25 : TIEMPO_RECONOCIMIENTO;
+  return tieneHerramienta("Libreta de notas") ? 14 : TIEMPO_RECONOCIMIENTO;
 }
 
 float ruidoLanzamiento() {
@@ -1723,28 +1869,6 @@ void escribirResultado(boolean exito) {
     saveStrings(dataPath("resultado.txt"), l.array());
   } catch (Exception e) {
     println("No se pudo escribir resultado.txt: " + e.getMessage());
-  }
-}
-
-// Lista de herramientas en la pantalla de elegir rol
-void dibujarHerramientasCampana(float x, float y, float w) {
-  float e = escala;
-  textFont(letraChica);
-  textAlign(LEFT, TOP);
-  fill(NEON_VERDE);
-  text("Herramientas de tu campaña" + (campanaDePrueba ? " (de prueba: no hay campana.txt)" : " · " + barrioCampana), x, y);
-  int n = 0;
-  for (int k = 0; k < HERRAMIENTAS.length; k++) {
-    if (!tieneHerramienta(HERRAMIENTAS[k])) continue;
-    float cx = x + (n % 2) * w / 2;
-    float cy = y + 22 * e + (n / 2) * 18 * e;
-    fill(220);
-    text("· " + HERRAMIENTAS[k] + ": " + EFECTO_HERRAMIENTA[k], cx, cy);
-    n++;
-  }
-  if (n == 0) {
-    fill(140);
-    text("Ninguna. Desbloquea habilidades en el árbol de Alcalde Digital.", x, y + 22 * e);
   }
 }
 
@@ -2311,7 +2435,6 @@ final color COLOR_RIVAL = #E8344E;
 final color COLOR_AMBAR = #FFB547;
 final color NEON_VERDE = #3DDC84;
 final color COLOR_FONDO = #0B0E1A;
-final color COLOR_PANEL = #0F1424;
 
 // El centro de la camara se redondea a pixeles enteros: asi todas las
 // baldosas caen justas y no aparecen rayitas entre ellas.
@@ -2561,15 +2684,9 @@ void dibujarBaldosaAlta(int i, int j) {
     // la flechita sobra cuando ya tiene la etiqueta encima
     if (marca != null && marca[i][j] >= 1) return;
     // flechitas sobre lo que se puede recoger o usar
-    if (soloEscapar()) {
-      // ya solo importan las salidas
-      if (c == 'E' || c == 'm' || (i == DUCTO_CALLE_I && j == DUCTO_CALLE_J)) marcador(i + 0.5, j + 0.5, c == 'v' ? 14 : 30, NEON_VERDE);
-      return;
-    }
-    if (c == 'h' || c == 'l' || c == 'P' || c == 'r' || c == 'b' || c == 'y' || c == 'n' || c == 'o') marcador(i + 0.5, j + 0.5, 14, c == 'r' ? COLOR_RIVAL : (c == 'b' ? #3E7BFF : COLOR_AMBAR));
-    if (c == 'S' && !servidorCopiado && i == mapa.servidorI && j == mapa.servidorJ) marcador(i + 0.5, j + 0.5, 40, COLOR_AMBAR);
-    if ((c == 'E' || c == 'm') && servidorCopiado) marcador(i + 0.5, j + 0.5, 30, NEON_VERDE);
-    if ((c == 'O' && !chatLeido) || (c == 'X' && !tableroVisto) || (c == 'U' && !cuadernoVisto)) marcador(i + 0.5, j + 0.5, 30, NEON_MAGENTA);
+    // solo se marca lo que falta de la ruta: tarjetas que hacen falta, el
+    // servidor y, ya copiado, la camioneta
+    if (paradaPendiente(i, j, c)) marcador(i + 0.5, j + 0.5, c == 'S' ? 40 : (c == 'E' ? 30 : 14), colorParada(c == 'S' ? 5 : (c == 'E' ? 6 : "-rbyn".indexOf(c))));
   }
   noTint();
 }
@@ -2872,8 +2989,8 @@ void dibujarPlano() {
   for (int n = 0; n < vigilantes.size(); n++) {
     Vigilante v = vigilantes.get(n);
     ArrayList<int[]> r = v.rondaCompleta;
-    stroke(red(v.colorRonda), green(v.colorRonda), blue(v.colorRonda), 210);
-    strokeWeight(4 * escala);
+    stroke(red(v.colorRonda), green(v.colorRonda), blue(v.colorRonda), rutaMision.size() > 1 ? 110 : 210);   // tenues: resalta la ruta
+    strokeWeight((rutaMision.size() > 1 ? 3 : 4) * escala);
     for (int k = 0; k + 1 < r.size(); k++) {
       int[] a = r.get(k);
       int[] b = r.get(k + 1);
@@ -2891,6 +3008,7 @@ void dibujarPlano() {
   }
 
   dibujarDuctos(200);
+  dibujarRutaMision();
 
   // Nombre de cada cuarto en su centro
   float[] sumaX = new float[NOMBRES_ZONA.length];
@@ -2916,22 +3034,11 @@ void dibujarPlano() {
   for (int i = 0; i < mapa.ancho; i++) {
     for (int j = 0; j < mapa.alto; j++) {
       char c = mapa.celdas[i][j];
-      if (c == 'S' && !servidorMarcado) {
+      // solo se rotula lo de la ruta (dibujarRutaMision); lo demás ya no se marca
+      if (c == 'S' && !servidorMarcado && rutaMision.size() < 2) {
         etiquetaMundo(i + 0.5, j + 0.5, "SERVIDOR", COLOR_AMBAR);
         servidorMarcado = true;
       }
-      if (c == 'E' && !camionetaMarcada) {
-        etiquetaMundo(i + 0.5, j + 0.5, "Camioneta", NEON_VERDE);
-        camionetaMarcada = true;
-      }
-      if (c == 'm') etiquetaMundo(i + 0.5, j + 0.5, "Moto (salida)", NEON_VERDE);
-      if (i == DUCTO_CALLE_I && j == DUCTO_CALLE_J) etiquetaMundo(i + 0.5, j + 0.5, "Ducto a la calle (máx. 2 kg)", NEON_VERDE);
-      if (c == 'r') etiquetaMundo(i + 0.5, j + 0.5, "Tarjeta roja", COLOR_RIVAL);
-      if (c == 'b') etiquetaMundo(i + 0.5, j + 0.5, "Tarjeta azul", #3E7BFF);
-      if (c == 'y') etiquetaMundo(i + 0.5, j + 0.5, "Tarjeta amarilla", COLOR_AMBAR);
-      if (c == 'n') etiquetaMundo(i + 0.5, j + 0.5, "Código", NEON_CIAN);
-      if (c == 'O') etiquetaMundo(i + 0.5, j + 0.5, "Celular del rival", NEON_MAGENTA);
-      if (c == 'T') etiquetaMundo(i + 0.5, j + 0.5, "Luces", #F2F2E9);
     }
   }
 }
@@ -2986,15 +3093,6 @@ void etiquetaMundo(float x, float y, String texto, color c) {
 
 final float DISTANCIA_JEFE = 3;
 final float DISTANCIA_PEGADO = 1.0;   // a menos de esto cualquier vigilante ve que no eres el conserje
-final int[] ZONAS_PROHIBIDAS = {4, 6, 7};   // seguridad, servidor, oficina del rival
-
-boolean enZonaProhibida(Jugador j) {
-  int z = mapa.zonaEn(j.x, j.y);
-  for (int p : ZONAS_PROHIBIDAS) {
-    if (z == p) return true;
-  }
-  return false;
-}
 
 // Cuanto se multiplica la sospecha de quien mira a este jugador.
 // esJefe: si quien mira es el jefe de seguridad. d: distancia.
@@ -3123,7 +3221,7 @@ void dibujarHud(float dt) {
     rect(0, 0, width, height);
   }
 
-  if (estado == INICIO || estado == ELEGIR_ROL || estado == CREDITOS || estado == LLAMADA) return;
+  if (estado == INICIO || estado == CREDITOS || estado == LLAMADA) return;
   if (estado == RECONOCIMIENTO) {
     dibujarHudReconocimiento();
     return;
@@ -3147,13 +3245,16 @@ void dibujarHudReconocimiento() {
   float x = width / 2 - w / 2;
   float y = 14 * e;
   panel(x, y, w, 100 * e);
-  textAlign(CENTER, TOP);
-  textFont(letraGrande);
+  // Valeria, con su cara, explica la ruta
+  if (caraValeria != null) image(caraValeria, x + 14 * e, y + 12 * e, 46 * e, 46 * e);
+  textAlign(LEFT, TOP);
+  textFont(letraMedia);
   fill(NEON_MAGENTA);
-  text("RECONOCIMIENTO", width / 2, y + 10 * e);
+  text("VALERIA", x + 72 * e, y + 10 * e);
   textFont(letraChica);
-  fill(215);
-  text("Estudia las rondas, las cámaras, las tarjetas y los ductos. Adentro ya no se dibujan las rutas.", width / 2, y + 42 * e);
+  fill(225);
+  text(TEXTO_RUTA_VALERIA, x + 72 * e, y + 30 * e, w - 90 * e, 34 * e);
+  textAlign(CENTER, TOP);
   // tiempo que queda
   float resto = max(0, tiempoReconocimiento) / tiempoReconocimientoTotal();
   noStroke();
@@ -3166,7 +3267,7 @@ void dibujarHudReconocimiento() {
 
   // Leyenda de colores abajo (sin nombres: una raya de color por cada ronda)
   textFont(letraChica);
-  String rondas = "Rondas de los vigilantes";
+  String rondas = "Rondas de los vigilantes · verde: tu ruta";
   String camara = "Zona que barre cada cámara";
   float rayas = vigilantes.size() * 14 * e;
   float total = rayas + 8 * e + textWidth(rondas) + 40 * e + 22 * e + 8 * e + textWidth(camara);
@@ -3189,64 +3290,6 @@ void dibujarHudReconocimiento() {
   text(camara, lx + 30 * e, ly);
 }
 
-void tarjetaJugador(Jugador j, float x, float y) {
-  float e = escala;
-  panel(x, y, 420 * e, 70 * e);
-  noStroke();
-  fill(j.ropa);
-  rect(x, y, 5 * e, 70 * e);
-  textFont(letraMedia);
-  textAlign(LEFT, TOP);
-  fill(235);
-  text("J" + j.numero + " " + NOMBRES_ROL[j.rol] + " · " + j.postura(), x + 14 * e, y + 8 * e);
-  textFont(letraChica);
-  textAlign(RIGHT, CENTER);
-  fill(j.botellas > 0 ? NEON_VERDE : color(110));
-  text("Botellas: " + j.botellas, x + 408 * e, y + 38 * e);
-  // habilidad del rol: lista o cuanto le falta
-  textAlign(LEFT, CENTER);
-  boolean lista = j.enfriamiento <= 0;
-  fill(lista ? (j.rol == ROL_HACKER ? NEON_CIAN : NEON_MAGENTA) : color(110));
-  text(j.teclaHabilidad() + ": " + (j.sombra > 0 ? "activa" : (lista ? "lista" : ceil(j.enfriamiento) + " s")), x + 226 * e, y + 38 * e);
-  // Mochila: kilos que lleva de los que caben
-  textFont(letraChica);
-  textAlign(RIGHT, TOP);
-  fill(j.peso >= CAPACIDAD_MOCHILA ? COLOR_AMBAR : color(200));
-  text("Mochila " + j.peso + "/" + CAPACIDAD_MOCHILA + " kg", x + 408 * e, y + 10 * e);
-  // Ruido: 10 rayitas, se llenan segun hasta donde se oyen los pasos
-  textFont(letraChica);
-  textAlign(LEFT, CENTER);
-  fill(160);
-  text("Ruido", x + 14 * e, y + 38 * e);
-  int llenas = min(10, round(j.radioRuido() / 3.7 * 10));
-  for (int k = 0; k < 10; k++) {
-    if (k < llenas) fill(k < 4 ? NEON_VERDE : (k < 7 ? COLOR_AMBAR : COLOR_RIVAL));
-    else fill(35, 42, 66);
-    rect(x + 70 * e + k * 14 * e, y + 33 * e, 10 * e, 10 * e);
-  }
-  fill(130);
-  textAlign(LEFT, BOTTOM);
-  String controles = j.numero == 1 ? "WASD · Shift corre · C agacha · E usa · Q lanza · X suelta · F rol"
-    : "Flechas · - corre · . agacha · Enter · , lanza · K suelta · M rol";
-  text(controles, x + 14 * e, y + 66 * e);
-}
-
-void objetivo(float x, float y, boolean hecho, String texto) {
-  float e = escala;
-  stroke(hecho ? NEON_VERDE : color(130));
-  strokeWeight(1.5 * e);
-  noFill();
-  rect(x, y + 2 * e, 11 * e, 11 * e);
-  if (hecho) {
-    line(x + 2 * e, y + 8 * e, x + 5 * e, y + 11 * e);
-    line(x + 5 * e, y + 11 * e, x + 10 * e, y + 3 * e);
-  }
-  noStroke();
-  fill(hecho ? NEON_VERDE : color(220));
-  textAlign(LEFT, TOP);
-  text(texto, x + 18 * e, y);
-}
-
 // Panel de las ventanas y menus: el mismo marco del HUD en pixel art,
 // agrandado a la escala del arte
 void panel(float x, float y, float w, float h) {
@@ -3261,11 +3304,6 @@ void panel(float x, float y, float w, float h, color c) {
   marcoPixel(g, 0, 0, round(w / pixel) - 1, round(h / pixel) - 1, c);
   popMatrix();
   noStroke();
-}
-
-String reloj(float segundos) {
-  int s = floor(segundos);
-  return nf(s / 60, 2) + ":" + nf(s % 60, 2);
 }
 
 // ---------------------------------------------------------------------------
@@ -3460,11 +3498,6 @@ void dibujarVentana() {
   text("Muévete o presiona usar para cerrar", x + w - 20 * e, y + h - 22 * e);
 }
 
-// Nombre para el plano: el jefe se distingue de los vigilantes
-String nombreVigilante(int n) {
-  return vigilantes.get(n).esJefe ? "Jefe de seguridad" : "Vigilante " + (n + 1);
-}
-
 
 // ======================================================================
 // HudPixel.pde
@@ -3521,23 +3554,6 @@ void textoPixel(PGraphics g, String t, float x, float y, color c, PFont f) {
   g.textFont(f);
   g.fill(c);
   g.text(t, round(x), round(y));
-}
-
-void iconoTarjeta(PGraphics g, int x, int y, color c, boolean llena) {
-  g.noStroke();
-  if (llena) {
-    g.fill(c);
-    g.rect(x, y, 10, 7);
-    g.fill(242, 242, 233);
-    g.rect(x + 2, y + 2, 3, 2);
-  } else {
-    g.noFill();
-    g.stroke(c);
-    g.rect(x, y, 9, 6);
-    g.noStroke();
-    g.fill(c);
-    g.rect(x + 2, y + 2, 3, 2);
-  }
 }
 
 void iconoMochila(PGraphics g, int x, int y, color c) {
@@ -3626,7 +3642,7 @@ void dibujarHudPixel() {
   for (int k = 0; k < jugadores.size(); k++) tarjetaJugadorPixel(g, jugadores.get(k), 8 + k * 236, al - 62);
   if (jugadores.size() == 1) {
     g.textAlign(RIGHT, BOTTOM);
-    textoPixel(g, desdeCampana ? "G mapa · V rutas · R reiniciar la misión" : "G mapa · V rutas · R reiniciar · Esc salir", an - 8, al - 4, color(110, 118, 145), pixel8);
+    textoPixel(g, desdeCampana ? "G ver la ruta · R reiniciar la misión" : "G ver la ruta · R reiniciar · Esc salir", an - 8, al - 4, color(110, 118, 145), pixel8);
     g.textAlign(LEFT, TOP);
   }
 
@@ -3645,13 +3661,13 @@ void dibujarHudPixel() {
 
 // Con el servidor copiado: solo las salidas y lo que se lleva
 void dibujarPanelEscape(PGraphics g) {
-  marcoPixel(g, 8, 8, 236, 84, NEON_VERDE);
+  marcoPixel(g, 8, 8, 236, 60, NEON_VERDE);
   textoPixel(g, "ESCAPA", 15, 11, NEON_VERDE, pixel12);
   g.textAlign(RIGHT, TOP);
   textoPixel(g, horaTexto(), 229, 14, color(242, 242, 233), pixel8);
   g.textAlign(LEFT, TOP);
   String[] nombres = {"Camioneta (entrada)", "Moto (fondo del parqueadero)", "Ducto a la calle"};
-  for (int s = 0; s < 3; s++) {
+  for (int s = 0; s < 1; s++) {   // solo la de la ruta
     int y = 30 + s * 12;
     String b = bloqueoSalida(s);
     // "espera a tu compañero" no cuenta como bloqueo: la salida sirve
@@ -3667,25 +3683,38 @@ void dibujarPanelEscape(PGraphics g) {
       g.textAlign(LEFT, TOP);
     }
   }
-  int llevadas = 0;
-  for (Jugador j : jugadores) llevadas += j.valorBotin;
-  textoPixel(g, "Llevas " + llevadas + " puntos de botín", 16, 70, COLOR_AMBAR, pixel8);
+  textoPixel(g, "Sigue la ruta hasta la camioneta (G)", 16, 46, COLOR_AMBAR, pixel8);
 }
 
 void dibujarObjetivosPixel(PGraphics g) {
   // Objetivos
-  marcoPixel(g, 8, 8, 236, 100, NEON_CIAN);
-  textoPixel(g, "INFILTRADO", 15, 11, NEON_CIAN, pixel12);
+  marcoPixel(g, 8, 8, 236, 30 + paradasRuta.size() * 11 + 18, NEON_CIAN);
+  textoPixel(g, "TU RUTA", 15, 11, NEON_CIAN, pixel12);
   g.textAlign(RIGHT, TOP);
   textoPixel(g, horaTexto(), 229, 14, color(242, 242, 233), pixel8);
   g.textAlign(LEFT, TOP);
   int llevadas = 0;
   for (Jugador j : jugadores) llevadas += j.valorBotin;
-  // copiar el servidor va de ultimo: despues ya solo se escapa
-  boolean[] hechos = {llevadas >= mejorBotin, chatLeido, oportunidadesHechas() == 3, servidorCopiado};
-  String[] textos = {"Botín: " + llevadas + " (lo mejor que cabe: " + mejorBotin + ")",
-    "Extra: lee el chat del rival", "Extra: oportunidades " + oportunidadesHechas() + "/3", "Al final: copia el servidor"};
-  for (int k = 0; k < 4; k++) {
+  // solo la ruta: las tarjetas que hagan falta, el servidor y la salida
+  StringList lista = new StringList();
+  IntList hecho = new IntList();
+  for (int[] p : paradasRuta) {
+    if (p[2] >= 1 && p[2] <= 4) {
+      lista.append("Toma la " + nombreParada(p[2]).toLowerCase());
+      hecho.append(tarjetas[p[2]] ? 1 : 0);
+    }
+  }
+  lista.append("Copia el servidor");
+  hecho.append(servidorCopiado ? 1 : 0);
+  lista.append("Sal por la camioneta");
+  hecho.append(0);
+  boolean[] hechos = new boolean[lista.size()];
+  String[] textos = new String[lista.size()];
+  for (int k = 0; k < lista.size(); k++) {
+    hechos[k] = hecho.get(k) == 1;
+    textos[k] = (k + 1) + ". " + lista.get(k);
+  }
+  for (int k = 0; k < textos.length; k++) {
     int y = 30 + k * 11;
     color c = hechos[k] ? NEON_VERDE : color(242, 242, 233);
     g.noStroke();
@@ -3700,45 +3729,16 @@ void dibujarObjetivosPixel(PGraphics g) {
     }
     textoPixel(g, textos[k], 26, y - 2, c, pixel8);
   }
-  // barra de copia junto al ultimo objetivo
+  // barra de copia junto a "Copia el servidor"
   if (!servidorCopiado && progresoServidor > 0) {
+    int yb = 30 + (textos.length - 2) * 11 + 3;
     g.fill(35, 42, 72);
-    g.rect(170, 64, 58, 5);
+    g.rect(170, yb, 58, 5);
     g.fill(NEON_MAGENTA);
-    g.rect(170, 64, round(58 * progresoServidor), 5);
+    g.rect(170, yb, round(58 * progresoServidor), 5);
   }
-  // tarjetas
-  color[] colores = {0, COLOR_RIVAL, #3E7BFF, COLOR_AMBAR, NEON_CIAN};
-  String[] nombres = {"", "roja", "azul", "amar.", codigoConocido()};
-  for (int k = 1; k <= 4; k++) {
-    int x = 16 + (k - 1) * 56;
-    iconoTarjeta(g, x, 76, colores[k], tarjetas[k]);
-    textoPixel(g, nombres[k], x + 13, 74, tarjetas[k] ? color(242, 242, 233) : color(92, 103, 135), pixel8);
-  }
-  boolean[] alcanza = mapa.zonasAlcanzables(tarjetas);
-  int n = 0;
-  for (boolean b : alcanza) if (b) n++;
-  textoPixel(g, "Alcanzas " + n + " de " + alcanza.length + " cuartos", 16, 86, color(125, 139, 176), pixel8);
-
-  // Oportunidades (cuando ya se descubrio alguna)
-  boolean algunaVista = false;
-  for (boolean b : oportunidadVista) if (b) algunaVista = true;
-  if (algunaVista) {
-    marcoPixel(g, 8, 104, 236, 152, NEON_MAGENTA);
-    textoPixel(g, "OPORTUNIDADES " + oportunidadesHechas() + "/3", 15, 107, NEON_MAGENTA, pixel8);
-    for (int k = 0; k < 3; k++) {
-      int y = 119 + k * 10;
-      String t = oportunidadVista[k] ? NOMBRES_OPORTUNIDAD[k] : "??? (revisa la oficina)";
-      if (oportunidadVista[k] && !oportunidadHecha[k] && progresoOportunidad[k] > 0 && k != 1) t += " " + round(progresoOportunidad[k] * 100) + "%";
-      color c = oportunidadHecha[k] ? NEON_VERDE : (oportunidadVista[k] ? color(242, 242, 233) : color(92, 103, 135));
-      g.noStroke();
-      g.fill(c);
-      if (oportunidadHecha[k]) g.rect(16, y + 2, 5, 5);
-      else g.rect(17, y + 4, 3, 1);
-      textoPixel(g, t, 26, y - 1, c, pixel8);
-    }
-  }
-
+  textoPixel(g, "G: ver la ruta en el mapa", 16, 30 + textos.length * 11 + 4, color(125, 139, 176), pixel8);
+  // las oportunidades y el botín siguen en la sede, pero ya no se muestran
 }
 
 void dibujarEstadoPixel(PGraphics g, int an) {
@@ -4225,7 +4225,7 @@ class Jugador {
   int botellas;               // para lanzar y distraer
   // Ducto de ventilacion
   boolean enDucto;
-  int rejillaOrigen, opcionDucto;
+  int opcionDucto;
   ArrayList<Integer> destinosDucto;
   int[] distanciasDucto;
   float esperaDucto, viajeDucto;
@@ -4744,8 +4744,6 @@ class Mapa {
   ArrayList<float[]> fuentesLuz = new ArrayList<float[]>();   // x, y, r, g, b, radio, fuerza, altura
   float[] inicioX = new float[2];
   float[] inicioY = new float[2];
-  int totalPruebas;
-  int valorBotinTotal;   // suma del valor de todo el botin (Mochila.pde)
   int servidorI = -1, servidorJ = -1;   // un servidor para marcarlo con la flechita
   ArrayList<int[]> lamparas = new ArrayList<int[]>();
 
@@ -4798,10 +4796,6 @@ class Mapa {
           }
         }
         if (c == 'L') lamparas.add(new int[] {i, j});
-        if (LETRAS_BOTIN.indexOf(c) >= 0) {
-          totalPruebas++;
-          valorBotinTotal += VALOR_BOTIN[LETRAS_BOTIN.indexOf(c)];
-        }
         if (c == 'S' && servidorI < 0) {
           servidorI = i;
           servidorJ = j;
@@ -4868,11 +4862,6 @@ class Mapa {
 
   int zonaEn(float x, float y) {
     return zona[constrain(floor(x), 0, ancho - 1)][constrain(floor(y), 0, alto - 1)];
-  }
-
-  float corteEn(int i, int j) {
-    if (i < 0 || j < 0 || i >= ancho || j >= alto) return 0;
-    return corte[i][j];
   }
 
   // Los jugadores no pasan por paredes, puertas cerradas ni muebles
@@ -5160,9 +5149,10 @@ class Mapa {
     if (!visitado[meta]) return camino;
     int paso = meta;
     while (paso != -1) {
-      camino.add(0, new int[] {paso % ancho, paso / ancho});
+      camino.add(new int[] {paso % ancho, paso / ancho});
       paso = anterior[paso];
     }
+    java.util.Collections.reverse(camino);   // se armó desde la meta hacia atrás
     return camino;
   }
 
@@ -5227,9 +5217,10 @@ class Mapa {
     int paso = j * ancho + i;
     if (anteriorCivil == null || (anteriorCivil[paso] == -1)) return camino;
     while (paso != -1) {
-      camino.add(0, new int[] {paso % ancho, paso / ancho});
+      camino.add(new int[] {paso % ancho, paso / ancho});
       paso = anteriorCivil[paso];
     }
+    java.util.Collections.reverse(camino);
     return camino;
   }
 
@@ -5523,11 +5514,6 @@ float ruidoPeso(Jugador j) {
   return 0.08 * j.peso;
 }
 
-// Valor de todo el botin que hay en el mapa al empezar
-int valorTotalBotin() {
-  return mapa.valorBotinTotal;
-}
-
 
 // ======================================================================
 // Oportunidades.pde
@@ -5619,21 +5605,6 @@ int oportunidadesHechas() {
   int n = 0;
   for (boolean b : oportunidadHecha) if (b) n++;
   return n;
-}
-
-// Panel de oportunidades debajo de los objetivos
-void dibujarOportunidades(float x, float y, float w) {
-  float e = escala;
-  panel(x, y, w, 92 * e);
-  textFont(letraChica);
-  textAlign(LEFT, TOP);
-  fill(NEON_MAGENTA);
-  text("Oportunidades " + oportunidadesHechas() + "/3", x + 12 * e, y + 8 * e);
-  for (int k = 0; k < 3; k++) {
-    String t = oportunidadVista[k] ? NOMBRES_OPORTUNIDAD[k] : "??? (revisa la oficina del rival)";
-    if (oportunidadVista[k] && !oportunidadHecha[k] && progresoOportunidad[k] > 0 && k != 1) t += "  " + round(progresoOportunidad[k] * 100) + "%";
-    objetivo(x + 12 * e, y + 28 * e + k * 20 * e, oportunidadHecha[k], t);
-  }
 }
 
 void dibujarDestelloFoto() {
@@ -6099,7 +6070,6 @@ final float TIEMPO_HACKEO = 12;
 final float TIEMPO_SOMBRA = 6;
 final float ALCANCE_HACKEO = 9;
 
-int rolElegido = ROL_HACKER;   // en la pantalla de elegir
 
 void usarHabilidad(Jugador j) {
   if (estado != JUGANDO || j.escondido || j.contestando != null) return;
@@ -6182,127 +6152,6 @@ void dibujarEfectosRol() {
         py = ny;
       }
     }
-  }
-}
-
-// Pantalla para elegir el rol (entre el inicio y el reconocimiento). Va en
-// pixel art, como el HUD: se dibuja en una capa del tamaño del arte (unos
-// 640 x 360) con los marcos y la letra del HUD, y se agranda sin suavizar.
-PGraphics capaRol;
-
-void dibujarElegirRol() {
-  if (capaRol == null || capaRol.width != capaHud.width || capaRol.height != capaHud.height) {
-    capaRol = createGraphics(capaHud.width, capaHud.height);
-    capaRol.noSmooth();
-  }
-  PGraphics g = capaRol;
-  g.beginDraw();
-  g.clear();
-  g.noStroke();
-  g.fill(0, 150);
-  g.rect(0, 0, g.width, g.height);
-  int w = 404, h = 262;
-  int x = (g.width - w) / 2, y = (g.height - h) / 2;
-  marcoPixel(g, x, y, x + w - 1, y + h - 1, NEON_CIAN);
-  // titulo con una raya debajo
-  g.textAlign(CENTER, TOP);
-  textoPixel(g, numJugadores == 1 ? "ELIGE TU ROL" : "JUGADOR 1: ELIGE TU ROL", g.width / 2, y + 9, color(242, 242, 233), pixel12);
-  g.fill(NEON_CIAN);
-  g.rect(g.width / 2 - 40, y + 25, 80, 1);
-  String[][] textos = {
-    {"Apaga 12 s la cámara más cercana.", "Contesta la radio con 3 flechas, no 4.", "Habilidad cada 25 s."},
-    {"Sombra: 6 s en los que casi nadie te nota.", "Agachado se mueve más rápido.", "Habilidad cada 30 s."}
-  };
-  color[] colores = {NEON_CIAN, NEON_MAGENTA};
-  int cw = 184, ch = 128;
-  for (int r = 0; r < 2; r++) {
-    int cx = x + 14 + r * (cw + 8);
-    int cy = y + 34;
-    boolean sel = r == rolElegido;
-    // la tarjeta elegida se levanta un pixel y titila el borde
-    int sube = sel ? 1 : 0;
-    color borde = sel ? ((frameCount / 20) % 2 == 0 ? colores[r] : color(242, 242, 233)) : color(70, 80, 110);
-    marcoPixel(g, cx, cy - sube, cx + cw - 1, cy + ch - 1 - sube, borde);
-    if (sel) {
-      g.noStroke();
-      g.fill(red(colores[r]), green(colores[r]), blue(colores[r]), 28);
-      g.rect(cx + 3, cy + 3 - sube, cw - 6, ch - 6);
-    }
-    iconoRol(g, r, cx + 10, cy + 10 - sube, sel ? colores[r] : color(110, 120, 150));
-    g.textAlign(LEFT, TOP);
-    textoPixel(g, NOMBRES_ROL[r].toUpperCase(), cx + 32, cy + 10 - sube, sel ? colores[r] : color(170, 176, 196), pixel12);
-    textoPixel(g, "F / M: " + HABILIDAD_ROL[r], cx + 32, cy + 25 - sube, color(140, 146, 170), pixel8);
-    g.fill(sel ? color(226, 228, 236) : color(150, 156, 176));
-    g.textFont(pixel8);
-    float ty = cy + 44 - sube;
-    for (int k = 0; k < 3; k++) {
-      g.text("· " + textos[r][k], cx + 10, round(ty), cw - 20, 30);
-      ty += g.textWidth(textos[r][k]) > cw - 28 ? 22 : 12;
-    }
-    if (numJugadores == 2) {
-      textoPixel(g, sel ? "JUGADOR 1" : "JUGADOR 2", cx + 10, cy + ch - 16 - sube, sel ? NEON_CIAN : NEON_VERDE, pixel8);
-    }
-  }
-  herramientasPixel(g, x + 14, y + 172, w - 28);
-  // pie: teclas
-  g.textAlign(CENTER, TOP);
-  textoPixel(g, "A / D: CAMBIAR      E / ENTER: ENTRAR", g.width / 2, y + h - 17,
-    (frameCount / 30) % 2 == 0 ? color(242, 242, 233) : color(150, 156, 176), pixel8);
-  g.endDraw();
-  image(capaRol, 0, 0, capaRol.width * pixel, capaRol.height * pixel);
-}
-
-// Icono de 16 x 16 de cada rol: un portátil para el hacker y un fantasma
-void iconoRol(PGraphics g, int r, int x, int y, color c) {
-  g.noStroke();
-  if (r == 0) {
-    g.fill(c);
-    g.rect(x + 2, y + 2, 12, 9);
-    g.fill(10, 14, 26);
-    g.rect(x + 3, y + 3, 10, 7);
-    g.fill(c);
-    g.rect(x + 4, y + 4, 4, 1);
-    g.rect(x + 4, y + 6, 6, 1);
-    g.rect(x + 4, y + 8, 3, 1);
-    g.rect(x, y + 12, 16, 2);
-    g.fill(red(c) * 0.6, green(c) * 0.6, blue(c) * 0.6);
-    g.rect(x + 1, y + 14, 14, 1);
-  } else {
-    g.fill(c);
-    g.rect(x + 4, y + 1, 8, 1);
-    g.rect(x + 2, y + 2, 12, 2);
-    g.rect(x + 1, y + 4, 14, 9);
-    g.rect(x + 1, y + 13, 3, 2);
-    g.rect(x + 6, y + 13, 4, 2);
-    g.rect(x + 12, y + 13, 3, 2);
-    g.fill(10, 14, 26);
-    g.rect(x + 4, y + 6, 2, 3);
-    g.rect(x + 10, y + 6, 2, 3);
-    g.rect(x + 7, y + 10, 2, 1);
-  }
-}
-
-// Las herramientas de la campaña, en letra pixel
-void herramientasPixel(PGraphics g, int x, int y, int w) {
-  g.textAlign(LEFT, TOP);
-  textoPixel(g, "HERRAMIENTAS DE TU CAMPAÑA" + (campanaDePrueba ? " (DE PRUEBA)" : " · " + barrioCampana.toUpperCase()), x, y, NEON_VERDE, pixel8);
-  g.fill(NEON_VERDE);
-  g.rect(x, y + 11, w, 1);
-  int n = 0;
-  for (int k = 0; k < HERRAMIENTAS.length; k++) {
-    if (!tieneHerramienta(HERRAMIENTAS[k])) continue;
-    if (n == 4) {
-      break;   // no caben más
-    }
-    int cx = x;
-    int cy = y + 16 + n * 11;
-    g.fill(NEON_VERDE);
-    g.rect(cx, cy + 3, 2, 2);
-    textoPixel(g, HERRAMIENTAS[k] + ": " + EFECTO_HERRAMIENTA[k], cx + 5, cy, color(220, 222, 230), pixel8);
-    n++;
-  }
-  if (n == 0) {
-    textoPixel(g, "Ninguna. Desbloquea habilidades en el árbol de Alcalde Digital.", x, y + 16, color(140, 146, 170), pixel8);
   }
 }
 
@@ -6545,11 +6394,9 @@ void dibujarObjetosMarcados() {
 PImage[] pisoAlfombra = new PImage[2];
 PImage[] pisoMadera = new PImage[2];
 PImage[] pisoBaldosa = new PImage[2];
-PImage pisoSalida;
 PImage[] paredLadrillo = new PImage[2];
 PImage paredNeon, paredNeonLuz, paredLetrero, paredLetreroLuz, paredBaja;
-PImage escritorio, escritorioLuz, servidor, servidorLuz, servidorLuzCopiado;
-PImage armario, farol, farolLuz, prueba;
+PImage servidorLuzCopiado;   // el servidor ya copiado (los demás muebles van en spriteObjeto)
 PImage brillo;   // mancha de luz blanca y suave, se pinta del color de cada luz
 PImage[] pisoAsfalto = new PImage[2];
 PImage[] pisoMetal = new PImage[2];
@@ -6589,21 +6436,12 @@ void cargarSprites() {
     pisoBaldosa[k] = loadImage("piso_baldosa_" + k + ".png");
     paredLadrillo[k] = loadImage("pared_" + k + ".png");
   }
-  pisoSalida = loadImage("piso_salida.png");
   paredNeon = loadImage("pared_neon.png");
   paredNeonLuz = loadImage("pared_neon_luz.png");
   paredLetrero = loadImage("pared_letrero.png");
   paredLetreroLuz = loadImage("pared_letrero_luz.png");
   paredBaja = loadImage("pared_baja.png");
-  escritorio = loadImage("escritorio.png");
-  escritorioLuz = loadImage("escritorio_luz.png");
-  servidor = loadImage("servidor.png");
-  servidorLuz = loadImage("servidor_luz.png");
   servidorLuzCopiado = loadImage("servidor_luz_copiado.png");
-  armario = loadImage("armario.png");
-  farol = loadImage("farol.png");
-  farolLuz = loadImage("farol_luz.png");
-  prueba = loadImage("prueba.png");
   brillo = loadImage("brillo.png");
   for (int k = 0; k < 2; k++) {
     pisoAsfalto[k] = loadImage("piso_asfalto_" + k + ".png");
@@ -7029,7 +6867,6 @@ void eventoValeria(String tipo, int prioridad, String detalle, String fija) {
 boolean[] vTarj = new boolean[5];
 int vAlarma, vTarjetas, vDigitos, vNoqueos, vBotin, vOportVistas, vOportHechas;
 boolean vAlerta, vSospecha, vServidor, vPistaA, vPistaR, vDisfraz, vAtrapado;
-String vAviso = "";
 int vEstado = -1;
 float sinAlerta, quieto;
 
@@ -7048,7 +6885,6 @@ class RespuestaValeria {
   String texto;
   Clip voz;
   float segundos;
-  boolean conIA;
 }
 
 void iniciarValeria() {
@@ -7066,9 +6902,18 @@ void reiniciarValeria() {
   vEstado = -1;
 }
 
-void callarValeria() {
-  if (vozActual != null) vozActual.stop();
+// Para la voz que suena y la cierra: cada frase trae su propio Clip y no
+// se vuelve a usar.
+void soltarVoz() {
+  if (vozActual != null) {
+    vozActual.stop();
+    vozActual.close();
+  }
   vozActual = null;
+}
+
+void callarValeria() {
+  soltarVoz();
   fraseValeria = "";
   respuestaLista = null;
   esperandoValeria = false;
@@ -7245,7 +7090,6 @@ void detectarEventosValeria(float dt) {
   vPistaR = pistaRoja;
   vNoqueos = noqueos;
   vBotin = botinLlevado();
-  vAviso = aviso;
 }
 
 boolean alertaReciente;
@@ -7260,7 +7104,6 @@ void leerEstadoValeria() {
   vPistaR = pistaRoja;
   vNoqueos = noqueos;
   vBotin = botinLlevado();
-  vAviso = aviso;
   vAlerta = false;
   vSospecha = false;
   vAtrapado = false;
@@ -7445,7 +7288,7 @@ void actualizarValeria(float dt) {
 
 void decir(RespuestaValeria r) {
   if (r.texto == null || r.texto.equals("")) return;
-  if (vozActual != null) vozActual.stop();
+  soltarVoz();
   fraseValeria = r.texto;
   tiempoFrase = 0;
   vozActual = r.voz;
@@ -7496,7 +7339,6 @@ class PedidoValeria implements Runnable {
     if (usuario != null) {
       try {
         r.texto = limpiarFrase(pedirAlModelo(PERSONA_VALERIA, usuario, 90));
-        r.conIA = true;
         fallosSeguidos = 0;
       } catch (Exception e) {
         fallosSeguidos++;
@@ -7533,7 +7375,7 @@ String limpiarFrase(String t) {
 // ---------------------------------------------------------------- internet
 
 byte[] enviarPost(String direccion, String[][] cabeceras, byte[] cuerpo, int espera) throws Exception {
-  java.net.HttpURLConnection c = (java.net.HttpURLConnection) new java.net.URL(direccion).openConnection();
+  java.net.HttpURLConnection c = (java.net.HttpURLConnection) java.net.URI.create(direccion).toURL().openConnection();
   c.setRequestMethod("POST");
   c.setDoOutput(true);
   c.setConnectTimeout(2500);
@@ -7625,8 +7467,12 @@ Clip vozDeAzure(String texto, String voz) throws Exception {
     if (!hayRed()) throw new RuntimeException("sin internet: la frase sale solo en texto");
     wav = enviarPost("https://" + regionAzure + ".tts.speech.microsoft.com/cognitiveservices/v1", cab, ssml.getBytes("UTF-8"), 4000);
     try {
+      // se escribe aparte y luego se renombra: si se corta a la mitad no
+      // queda un archivo dañado que después se tome por bueno
       guardada.getParentFile().mkdirs();
-      java.nio.file.Files.write(guardada.toPath(), wav);
+      java.io.File temporal = new java.io.File(guardada.getPath() + ".tmp");
+      java.nio.file.Files.write(temporal.toPath(), wav);
+      java.nio.file.Files.move(temporal.toPath(), guardada.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
     } catch (Exception e) {
       println("Valeria: no se pudo guardar la voz: " + e.getMessage());
     }

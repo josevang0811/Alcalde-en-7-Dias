@@ -87,21 +87,6 @@ int oportunidadesHechas() {
   return n;
 }
 
-// Panel de oportunidades debajo de los objetivos
-void dibujarOportunidades(float x, float y, float w) {
-  float e = escala;
-  panel(x, y, w, 92 * e);
-  textFont(letraChica);
-  textAlign(LEFT, TOP);
-  fill(NEON_MAGENTA);
-  text("Oportunidades " + oportunidadesHechas() + "/3", x + 12 * e, y + 8 * e);
-  for (int k = 0; k < 3; k++) {
-    String t = oportunidadVista[k] ? NOMBRES_OPORTUNIDAD[k] : "??? (revisa la oficina del rival)";
-    if (oportunidadVista[k] && !oportunidadHecha[k] && progresoOportunidad[k] > 0 && k != 1) t += "  " + round(progresoOportunidad[k] * 100) + "%";
-    objetivo(x + 12 * e, y + 28 * e + k * 20 * e, oportunidadHecha[k], t);
-  }
-}
-
 void dibujarDestelloFoto() {
   if (destelloFoto <= 0) return;
   noStroke();

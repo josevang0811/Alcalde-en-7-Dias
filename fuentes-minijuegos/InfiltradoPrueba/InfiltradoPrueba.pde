@@ -20,7 +20,6 @@ final int JUGANDO = 1;
 final int GANASTE = 2;
 final int PERDISTE = 3;
 final int RECONOCIMIENTO = 4;
-final int ELEGIR_ROL = 5;
 
 // Estados de un vigilante
 final int V_PATRULLA = 0;
@@ -49,17 +48,16 @@ ArrayList<Particula> particulas = new ArrayList<Particula>();
 ArrayList<Civil> civiles = new ArrayList<Civil>();
 
 final float TIEMPO_COPIA = 7;   // segundos que tarda copiar el servidor (un jugador)
-final float TIEMPO_RECONOCIMIENTO = 15;
+final float TIEMPO_RECONOCIMIENTO = 10;
 final float RADIO_LANZAMIENTO = 7;   // hasta donde llega una botella (baldosas)
 final float RUIDO_BOTELLA = 13;         // radio del ruido al romperse (atrae desde lejos)
 
 boolean[] tarjetas = new boolean[5];   // 1 roja, 2 azul, 3 amarilla, 4 codigo (se comparten en cooperativo)
-boolean chatLeido, tableroVisto, cuadernoVisto;   // lo que se reviso en la oficina del rival
+boolean chatLeido, tableroVisto;   // lo que se reviso en la oficina del rival
 int ventana;          // 0 nada, 1 chat del rival, 2 tablero de conspiracion, 3 cuaderno, 4 TV
 Jugador quienLee;
 float progresoServidor;
 boolean servidorCopiado;
-int pruebasExtraidas;
 int valorExtraido;
 int vecesDescubierto;
 int nivelAlarma;      // 0 a 3: sube cada vez que algo sale mal
@@ -134,7 +132,6 @@ void draw() {
   popMatrix();
   dibujarHud(dt);
   if (estado == INICIO) dibujarPantallaInicio();
-  if (estado == ELEGIR_ROL) dibujarElegirRol();
   if (estado == CREDITOS) {
     actualizarCreditos(dt);
     dibujarCreditos();
@@ -156,8 +153,9 @@ void iniciarMision() {
     jugadores.add(new Jugador(2, mapa.inicioX[1], mapa.inicioY[1], NEON_VERDE));
   }
   // el jugador 1 tiene el rol elegido y el 2 (si hay) el otro
-  jugadores.get(0).rol = rolElegido;
-  if (jugadores.size() > 1) jugadores.get(1).rol = 1 - rolElegido;
+  // ya no se elige habilidad: el jugador 1 es el hacker y el 2 la sombra
+  jugadores.get(0).rol = ROL_HACKER;
+  if (jugadores.size() > 1) jugadores.get(1).rol = 1 - ROL_HACKER;
 
   // Cada vigilante recibe su ronda como una lista de baldosas (columna, fila).
   // Entre un punto y el siguiente el camino lo busca BFS.
@@ -208,6 +206,7 @@ void iniciarMision() {
   progresoEmpujar = 0;
   tiempoPolicia = 0;
   prepararCodigo();
+  calcularRutaMision();
   mapaAbierto = false;
   resalteZona = new float[NOMBRES_ZONA.length];
   prepararOportunidades();
@@ -226,11 +225,9 @@ void iniciarMision() {
   tarjetas = new boolean[5];
   chatLeido = false;
   tableroVisto = false;
-  cuadernoVisto = false;
   ventana = 0;
   progresoServidor = 0;
   servidorCopiado = false;
-  pruebasExtraidas = 0;
   vecesDescubierto = 0;
   tiempoMision = 0;
   destelloAlarma = 0;
@@ -257,6 +254,7 @@ void empezar(int cuantos) {
 
 void irAlReconocimiento() {
   estado = RECONOCIMIENTO;
+  decirRutaValeria();
   tiempoReconocimiento = tiempoReconocimientoTotal();
   camX = centroPlanoX();
   camY = centroPlanoY();
@@ -275,8 +273,198 @@ void actualizarReconocimiento(float dt) {
 
 void entrar() {
   estado = JUGANDO;
-  avisar("Revisa la sede y al final copia el servidor: después solo queda escapar");
+  soltarVoz();
+  if (musica != null) musica.atenuar = 1;
+  avisar("Sigue la ruta: copia el servidor y sal por la camioneta (G para verla)");
 }
+
+// ---------------------------------------------------------------------------
+// La ruta de la misión: desde la entrada, las tarjetas que hagan falta, el
+// servidor y la salida en la camioneta. Se calcula con BFS sobre la
+// cuadrícula (el jugador no pasa por puertas cerradas si no tiene su
+// tarjeta). Lo demás de la sede sigue ahí, pero ya no se marca.
+// ---------------------------------------------------------------------------
+
+final String TEXTO_RUTA_VALERIA = "Candidato, esta es la ruta que tiene que seguir: llegue al servidor, copie la información y salga por la camioneta.";
+
+ArrayList<int[]> rutaMision = new ArrayList<int[]>();   // las baldosas, en orden
+ArrayList<int[]> paradasRuta = new ArrayList<int[]>();  // {i, j, tipo}: 1-4 tarjeta, 5 servidor, 6 salida
+boolean[] tarjetaEnRuta = new boolean[5];
+
+boolean pasoJugador(int i, int j, boolean[] t) {
+  if (i < 0 || j < 0 || i >= mapa.ancho || j >= mapa.alto) return false;
+  if (mapa.esPuertaCerrada(i, j)) return t[mapa.en(i, j) - '0'];
+  return !mapa.esSolido(i, j);
+}
+
+// BFS desde (i0, j0) hasta la baldosa más cercana que cumpla "meta":
+// 1 tarjeta sin recoger, 2 junto al servidor, 3 camioneta
+ArrayList<int[]> caminoRuta(int i0, int j0, boolean[] t, int meta) {
+  int an = mapa.ancho, al = mapa.alto;
+  boolean[] visto = new boolean[an * al];
+  int[] antes = new int[an * al];
+  java.util.ArrayDeque<Integer> cola = new java.util.ArrayDeque<Integer>();
+  int ini = j0 * an + i0;
+  visto[ini] = true;
+  antes[ini] = -1;
+  cola.add(ini);
+  int[] di = {1, -1, 0, 0}, dj = {0, 0, 1, -1};
+  int fin = -1;
+  while (!cola.isEmpty()) {
+    int a = cola.poll();
+    int ci = a % an, cj = a / an;
+    if (esMetaRuta(ci, cj, t, meta)) {
+      fin = a;
+      break;
+    }
+    for (int k = 0; k < 4; k++) {
+      int ni = ci + di[k], nj = cj + dj[k];
+      if (!pasoJugador(ni, nj, t)) continue;
+      int n = nj * an + ni;
+      if (visto[n]) continue;
+      visto[n] = true;
+      antes[n] = a;
+      cola.add(n);
+    }
+  }
+  ArrayList<int[]> camino = new ArrayList<int[]>();
+  for (int p = fin; p >= 0; p = antes[p]) camino.add(new int[] {p % an, p / an});
+  java.util.Collections.reverse(camino);   // se armó desde la meta hacia atrás
+  return camino;
+}
+
+boolean esMetaRuta(int i, int j, boolean[] t, int meta) {
+  char c = mapa.en(i, j);
+  if (meta == 1) {
+    int k = "-rbyn".indexOf(c);
+    return k >= 1 && !t[k];
+  }
+  if (meta == 2) {
+    return abs(i - mapa.servidorI) + abs(j - mapa.servidorJ) == 1;
+  }
+  return c == 'E';
+}
+
+void calcularRutaMision() {
+  rutaMision.clear();
+  paradasRuta.clear();
+  tarjetaEnRuta = new boolean[5];
+  if (mapa.servidorI < 0) return;
+  boolean[] t = new boolean[5];
+  int i = floor(mapa.inicioX[0]), j = floor(mapa.inicioY[0]);
+  // hasta el servidor; si no se llega, primero la tarjeta más cercana que se alcance
+  for (int intento = 0; intento < 5; intento++) {
+    ArrayList<int[]> alServidor = caminoRuta(i, j, t, 2);
+    if (alServidor.size() > 0) {
+      rutaMision.addAll(alServidor);
+      int[] f = alServidor.get(alServidor.size() - 1);
+      i = f[0];
+      j = f[1];
+      paradasRuta.add(new int[] {mapa.servidorI, mapa.servidorJ, 5});
+      break;
+    }
+    ArrayList<int[]> aTarjeta = caminoRuta(i, j, t, 1);
+    if (aTarjeta.size() == 0) return;
+    rutaMision.addAll(aTarjeta);
+    int[] f = aTarjeta.get(aTarjeta.size() - 1);
+    i = f[0];
+    j = f[1];
+    int k = "-rbyn".indexOf(mapa.en(i, j));
+    t[k] = true;
+    tarjetaEnRuta[k] = true;
+    paradasRuta.add(new int[] {i, j, k});
+  }
+  // del servidor a la camioneta
+  ArrayList<int[]> aSalida = caminoRuta(i, j, t, 3);
+  if (aSalida.size() > 0) {
+    rutaMision.addAll(aSalida);
+    int[] f = aSalida.get(aSalida.size() - 1);
+    paradasRuta.add(new int[] {f[0], f[1], 6});
+  }
+}
+
+String nombreParada(int tipo) {
+  String[] n = {"", "TARJETA ROJA", "TARJETA AZUL", "TARJETA AMARILLA", "CÓDIGO", "SERVIDOR", "SALIDA: CAMIONETA"};
+  return n[tipo];
+}
+
+color colorParada(int tipo) {
+  if (tipo == 1) return COLOR_RIVAL;
+  if (tipo == 2) return #3E7BFF;
+  if (tipo == 4) return NEON_CIAN;
+  if (tipo == 6) return NEON_VERDE;
+  return COLOR_AMBAR;
+}
+
+// La ruta sobre el plano (reconocimiento y mapa grande): una línea gruesa
+// con un brillo que avanza, y las paradas numeradas
+void dibujarRutaMision() {
+  if (rutaMision.size() < 2) return;
+  strokeCap(ROUND);
+  for (int capa = 0; capa < 2; capa++) {
+    stroke(capa == 0 ? color(15, 20, 36, 230) : color(110, 255, 130));
+    strokeWeight((capa == 0 ? 12 : 6) * escala);
+    for (int k = 0; k + 1 < rutaMision.size(); k++) {
+      int[] a = rutaMision.get(k), b = rutaMision.get(k + 1);
+      line(pantallaX(a[0] + 0.5, a[1] + 0.5), pantallaY(a[0] + 0.5, a[1] + 0.5),
+        pantallaX(b[0] + 0.5, b[1] + 0.5), pantallaY(b[0] + 0.5, b[1] + 0.5));
+    }
+  }
+  // un punto de luz que recorre la ruta para que se note hacia dónde va
+  noStroke();
+  int n = rutaMision.size();
+  for (int s = 0; s < 3; s++) {
+    float pos = ((millis() / 60.0) + s * n / 3.0) % n;
+    int[] a = rutaMision.get(floor(pos)), b = rutaMision.get(min(n - 1, floor(pos) + 1));
+    float f = pos - floor(pos);
+    float x = lerp(a[0], b[0], f) + 0.5, y = lerp(a[1], b[1], f) + 0.5;
+    fill(255, 255, 255, 230);
+    ellipse(pantallaX(x, y), pantallaY(x, y), 9 * escala, 9 * escala);
+  }
+  // las paradas
+  for (int k = 0; k < paradasRuta.size(); k++) {
+    int[] p = paradasRuta.get(k);
+    etiquetaMundo(p[0] + 0.5, p[1] + 0.5, (k + 1) + " · " + nombreParada(p[2]), colorParada(p[2]));
+  }
+  // la entrada
+  etiquetaMundo(mapa.inicioX[0], mapa.inicioY[0], "TÚ ENTRAS AQUÍ", color(242, 242, 233));
+}
+
+// ¿Esta baldosa es una parada de la ruta que todavía falta?
+boolean paradaPendiente(int i, int j, char c) {
+  int k = "-rbyn".indexOf(c);
+  if (k >= 1) return tarjetaEnRuta[k] && !tarjetas[k];
+  if (c == 'S') return !servidorCopiado && i == mapa.servidorI && j == mapa.servidorJ;
+  if (c == 'E') return servidorCopiado;
+  return false;
+}
+
+// Lo que dice Valeria sobre el plano (con su voz si hay)
+void decirRutaValeria() {
+  fraseValeria = "";
+  if (!valeriaConVoz()) return;
+  final String texto = TEXTO_RUTA_VALERIA;
+  Thread h = new Thread(new Runnable() {
+    public void run() {
+      try {
+        Clip c = vozDeAzure(texto);
+        if (estado != RECONOCIMIENTO) {
+          c.close();
+          return;
+        }
+        soltarVoz();
+        vozActual = c;
+        if (musica != null) musica.atenuar = 0.35;
+        c.start();
+      } catch (Exception e) {
+        println("Valeria (ruta): sin voz");
+      }
+    }
+  });
+  h.setDaemon(true);
+  h.start();
+}
+
 
 // Zoom con el que cabe toda la sede en la pantalla
 float zoomPlano() {
@@ -488,7 +676,6 @@ void usar(Jugador j) {
   }
   if (!soloEscapar() && mapa.cercano(j.x, j.y, 'U', 1.6) != null) {
     abrirVentana(j, 3);
-    cuadernoVisto = true;
     descubrirOportunidad(2);
     return;
   }
@@ -557,7 +744,6 @@ void entrarDucto(Jugador j, int rejilla) {
   j.enDucto = true;
   sonar("ducto");
   j.escondido = true;
-  j.rejillaOrigen = rejilla;
   j.destinosDucto = destinos;
   j.distanciasDucto = dist;
   j.opcionDucto = 0;
@@ -776,10 +962,8 @@ void perder(String motivo) {
 }
 
 void ganar() {
-  pruebasExtraidas = 0;
   valorExtraido = 0;
   for (Jugador j : jugadores) {
-    pruebasExtraidas += j.pruebas;
     valorExtraido += j.valorBotin;
   }
   if (oportunidadHecha[1]) valorExtraido += 3;   // la foto del tablero cuenta como prueba
@@ -840,7 +1024,6 @@ void keyPressed() {
     if (keyCode == LEFT) flechaIzq = true;
     if (keyCode == RIGHT) flechaDer = true;
     if (keyCode == SHIFT) teclaShift = true;
-    if (estado == ELEGIR_ROL && (keyCode == LEFT || keyCode == RIGHT)) rolElegido = 1 - rolElegido;
     // El jugador 2 elige en la consola con las flechas
     if (estado == JUGANDO && jugadores.size() > 1 && usandoConsola(jugadores.get(1))) {
       if (keyCode == UP) moverOpcionConsola(-1);
@@ -859,7 +1042,6 @@ void keyPressed() {
     if (!teclaEnter && desdeCampana && (estado == GANASTE || estado == PERDISTE)) volverALaCampana();
     else if (!teclaEnter && estado == CREDITOS) cerrarCreditos();
     else if (!teclaEnter && estado == LLAMADA) colgar();
-    else if (!teclaEnter && estado == ELEGIR_ROL) empezar(numJugadores);
     else if (!teclaEnter && estado == RECONOCIMIENTO) entrar();
     else if (!teclaEnter && estado == JUGANDO && jugadores.size() > 1) {
       jugadores.get(1).pulsoUsar = true;
@@ -903,15 +1085,9 @@ void alPresionar(char c) {
   if (estado == INICIO) {
     if (c == '1' || c == '2') {
       numJugadores = c == '1' ? 1 : 2;
-      iniciarMision();
-      estado = ELEGIR_ROL;
-      prepararLlamada();   // Valeria va escribiendo la llamada mientras se elige el rol
+      prepararLlamada();
+      empezar(numJugadores);   // ya no se elige habilidad
     }
-    return;
-  }
-  if (estado == ELEGIR_ROL) {
-    if (c == 'a' || c == 'd') rolElegido = 1 - rolElegido;
-    if (c == 'e' || c == ' ') empezar(numJugadores);
     return;
   }
   if (estado == RECONOCIMIENTO) {
@@ -983,6 +1159,7 @@ void alPresionar(char c) {
 // Dentro de Alcalde Digital, reiniciar es volver a elegir el rol (sin la
 // llamada ni la pantalla de inicio).
 void reintentarMision() {
+  // ya no se elige habilidad: se aparece en la sede y se ve la ruta
   iniciarMision();
-  estado = ELEGIR_ROL;
+  empezar(numJugadores);
 }

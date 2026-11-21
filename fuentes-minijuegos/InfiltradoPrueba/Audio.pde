@@ -16,8 +16,8 @@ import javax.sound.sampled.*;
 // Efectos: WAV cortos de data/sfx/, cada uno con su volumen y tres copias para
 // que puedan sonar encima de si mismos.
 
-final int M_CALMA = 0, M_TENSION = 1, M_ALERTA = 2, M_ESCAPE = 3, M_MENU = 4;
-final String[] PISTAS = {"calma", "tension", "alerta", "escape", "menu"};
+final int M_CALMA = 0, M_TENSION = 1, M_ALERTA = 2, M_ESCAPE = 3, M_MENU = 4, M_VICTORIA = 5;
+final String[] PISTAS = {"calma", "tension", "alerta", "escape", "menu", "victoria"};
 final float VOLUMEN_MUSICA = 0.55;
 final float VOLUMEN_EFECTOS = 0.8;
 
@@ -130,9 +130,9 @@ void sonar(String nombre) {
 
 // Que momento de la musica toca segun lo que pasa en la mision
 int momentoMusica() {
-  if (estado == INICIO || estado == ELEGIR_ROL || estado == CREDITOS || estado == LLAMADA) return M_MENU;
+  if (estado == INICIO || estado == CREDITOS || estado == LLAMADA) return M_MENU;
   if (estado == RECONOCIMIENTO) return M_CALMA;
-  if (estado == GANASTE) return M_ESCAPE;
+  if (estado == GANASTE) return M_VICTORIA;   // otra música: la de ganar
   if (estado == PERDISTE) return M_TENSION;
   boolean alerta = nivelAlarma >= 3;
   boolean tension = false;
@@ -159,9 +159,9 @@ void actualizarMusica() {
 // Mezclador de la musica en su propio hilo
 class Musica implements Runnable {
   final int FRECUENCIA = 22050;
-  short[][] pistas = new short[5][];   // en short y no en float: las canciones son largas y asi ocupan la mitad
-  int[] posicion = new int[5];
-  float[] ganancia = new float[5];
+  short[][] pistas = new short[PISTAS.length][];   // en short y no en float: las canciones son largas y asi ocupan la mitad
+  int[] posicion = new int[PISTAS.length];
+  float[] ganancia = new float[PISTAS.length];
   volatile int momento = M_MENU;
   volatile float atenuar = 1;   // baja la musica mientras habla Valeria
   volatile float volumenUsuario = 1;   // el de Opciones (Alcalde Digital)
@@ -169,13 +169,14 @@ class Musica implements Runnable {
 
   Musica() throws Exception {
     musicaPropia = false;
-    for (int k = 0; k < 5; k++) {
+    for (int k = 0; k < PISTAS.length; k++) {
       short[] propia = leerWavCorto(dataPath("musica/" + PISTAS[k] + ".wav"));
       if (propia != null) musicaPropia = true;   // basta con una canción propia
       pistas[k] = propia != null ? propia : leerWavCorto(dataPath("musica_respaldo/" + PISTAS[k] + ".wav"));
     }
-    // sin pista de menu: se usa la de calma
+    // sin pista de menu: se usa la de calma; sin la de ganar, la de escapar
     if (pistas[M_MENU] == null) pistas[M_MENU] = pistas[M_CALMA];
+    if (pistas[M_VICTORIA] == null) pistas[M_VICTORIA] = pistas[M_ESCAPE];
   }
 
   public void run() {
@@ -189,14 +190,18 @@ class Musica implements Runnable {
       float pasoFundido = bloque / (1.5 * FRECUENCIA);   // 1,5 s de fundido
       while (true) {
         int m = momento;
-        atenuacion += constrain(atenuar - atenuacion, -0.03, 0.03);
-        for (int k = 0; k < 5; k++) {
+        if (atenuar <= 0.001) {
+          atenuacion = 0;   // a silencio: de una vez
+        } else {
+          atenuacion += constrain(atenuar - atenuacion, -0.03, 0.012);   // y vuelve poco a poco (unos 4 s)
+        }
+        for (int k = 0; k < PISTAS.length; k++) {
           float meta = k == m ? 1 : 0;
           ganancia[k] += constrain(meta - ganancia[k], -pasoFundido, pasoFundido);
         }
         for (int i = 0; i < bloque; i++) {
           float v = 0;
-          for (int k = 0; k < 5; k++) {
+          for (int k = 0; k < PISTAS.length; k++) {
             if (ganancia[k] <= 0.001 || pistas[k] == null) continue;
             // la de menu comparte datos con calma: no se avanza dos veces
             if (k == M_MENU && pistas[M_MENU] == pistas[M_CALMA]) {

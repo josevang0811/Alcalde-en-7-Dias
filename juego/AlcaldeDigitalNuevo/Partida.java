@@ -453,10 +453,6 @@ public class Partida {
         return t >= 0 && t < jugadaZona.length ? jugadaZona[t] : -1;
     }
 
-    public int getJugadaCambio(int t) {
-        return t >= 0 && t < jugadaCambio.length ? jugadaCambio[t] : 0;
-    }
-
     public int apoyoTotal() {
         int s = 0;
         for (int v : apoyo) {

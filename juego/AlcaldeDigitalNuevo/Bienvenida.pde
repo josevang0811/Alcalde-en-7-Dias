@@ -13,12 +13,10 @@
 // Se piden al arrancar el juego (precargarBienvenida). Si no hay voz, los
 // subtítulos avanzan solos según lo largo de cada frase.
 
+// Corta a propósito: dos frases y al teléfono.
 String[] FRASES_BIENVENIDA = {
-    "¡Hola, candidato! Soy Valeria, tu estratega digital. Esta campaña se gana en Civitas, la red social de la ciudad.",
-    "Antes de publicar, revisa tres pistas: quién lo publicó, qué dicen los comentarios y si ataca a un grupo de personas.",
-    "Si compartes algo falso o un mensaje de odio, la gente lo nota: pierdes credibilidad y lo que publiques llegará a menos gente.",
-    "Después de cada jugada verás un informe de impacto: cuánta gente lo vio, qué comentaron y qué era en verdad la noticia.",
-    "¡Mucha suerte, candidato!"
+    "¡Hola, candidato! Soy Valeria. Esta campaña se gana en Civitas.",
+    "Antes de publicar, mira quién lo dijo y qué comentan. Lo falso y el odio te quitan votos. ¡Suerte!"
 };
 
 boolean bienvenidaPendiente = true;   // vuelve a true con cada campaña nueva
@@ -31,6 +29,7 @@ boolean fraseConVoz;
 Clip[] vocesBienvenida;
 Clip vozBienvenida;
 PImage[] caraValeriaTV;               // 0 boca cerrada, 1 boca abierta, 2 ojos cerrados
+PImage[] escenaValeria;               // la videollamada dibujada completa, con su cuarto (si existe)
 PImage imgTVApagado;
 
 final int ESPERA_BIENVENIDA = 1400;   // en la oficina, antes de que la TV se encienda
@@ -60,6 +59,17 @@ void cargarBienvenida() {
     cerrados.set(12, 7, sombra);
     for (PImage p : caraValeriaTV) {
         p.updatePixels();
+    }
+    // Si existe la escena dibujada de Valeria (data/retratos/valeria_escena_*.png:
+    // ella en su cuarto, con la boca cerrada, abierta y los ojos cerrados), se
+    // usa esa en vez del cuarto pintado con código y la cara de 20 x 20.
+    if (new java.io.File(dataPath("retratos/valeria_escena_base.png")).exists()) {
+        String[] nombres = {"base", "habla", "parpadeo"};
+        escenaValeria = new PImage[3];
+        for (int i = 0; i < 3; i++) {
+            String archivo = "retratos/valeria_escena_" + nombres[i] + ".png";
+            escenaValeria[i] = loadImage(new java.io.File(dataPath(archivo)).exists() ? archivo : "retratos/valeria_escena_base.png");
+        }
     }
 }
 
@@ -139,7 +149,12 @@ void empezarBienvenida() {
             public void run() {
                 for (int i = 0; i < FRASES_BIENVENIDA.length; i++) {
                     try {
-                        destino[i] = mision.vozDeAzure(FRASES_BIENVENIDA[i], mision.vozAzure);
+                        Clip c = mision.vozDeAzure(FRASES_BIENVENIDA[i], mision.vozAzure);
+                        if (destino != vocesBienvenida) {
+                            c.close();   // la videollamada ya terminó
+                            return;
+                        }
+                        destino[i] = c;
                     } catch (Exception e) {
                         return;
                     }
@@ -174,7 +189,7 @@ int duracionFrase() {
 
 boolean fraseTerminada() {
     int t = millis() - momentoFrase;
-    if (!fraseConVoz && vocesBienvenida[fraseBienvenida] != null && t < 400) {
+    if (!fraseConVoz && vocesBienvenida != null && vocesBienvenida[fraseBienvenida] != null && t < 400) {
         // la voz llegó justo al empezar: se usa
         empezarFrase(fraseBienvenida);
         return false;
@@ -196,6 +211,17 @@ void terminarBienvenida() {
     if (vozBienvenida != null) {
         vozBienvenida.stop();
     }
+    vozBienvenida = null;
+    fraseConVoz = false;
+    // las voces de la videollamada no se vuelven a usar: se cierran
+    if (vocesBienvenida != null) {
+        for (Clip c : vocesBienvenida) {
+            if (c != null) {
+                c.close();
+            }
+        }
+    }
+    vocesBienvenida = null;
     videollamadaActiva = false;
     alejarTV();
     // el teléfono cuenta su espera desde ahora
@@ -221,8 +247,12 @@ void dibujarVideollamada(float visible) {
     // se enciende: una raya blanca que se abre
     float abre = constrain(t / 350.0, 0, 1);
     clip(x, y + h / 2 * (1 - abre), w, h * abre);
-    dibujarCuartoValeria(x, y, w, h);
-    dibujarCaraValeria(x, y, w, h);
+    if (escenaValeria != null) {
+        dibujarEscenaValeria(x, y, w, h);
+    } else {
+        dibujarCuartoValeria(x, y, w, h);
+        dibujarCaraValeria(x, y, w, h);
+    }
     dibujarMarcoVideollamada(x, y, w, h, t);
     dibujarSubtitulos(x, y, w, h);
     noClip();
@@ -276,8 +306,9 @@ void dibujarCuartoValeria(float x, float y, float w, float h) {
     rect(x, y + h * 0.84, w, u);
 }
 
-void dibujarCaraValeria(float x, float y, float w, float h) {
-    // boca: se abre y se cierra mientras habla; parpadea cada tanto
+// Boca: se abre y se cierra mientras habla; parpadea cada tanto.
+// 0 boca cerrada, 1 boca abierta, 2 ojos cerrados.
+int caraActualValeria() {
     int cara = 0;
     if (valeriaHablando()) {
         int paso = millis() / 115;
@@ -286,6 +317,18 @@ void dibujarCaraValeria(float x, float y, float w, float h) {
     if (millis() % 3600 < 130) {
         cara = 2;
     }
+    return cara;
+}
+
+// La escena completa llena la pantalla de la videollamada (se recorta lo que sobre)
+void dibujarEscenaValeria(float x, float y, float w, float h) {
+    PImage img = escenaValeria[caraActualValeria()];
+    float s = max(w / img.width, h / img.height);
+    image(img, x + w / 2 - img.width * s / 2, y + h / 2 - img.height * s / 2, img.width * s, img.height * s);
+}
+
+void dibujarCaraValeria(float x, float y, float w, float h) {
+    int cara = caraActualValeria();
     float lado = h * 0.78;
     float respira = sin(millis() / 900.0) * h * 0.006;
     image(caraValeriaTV[cara], x + w / 2 - lado / 2, y + h - lado + respira, lado, lado);

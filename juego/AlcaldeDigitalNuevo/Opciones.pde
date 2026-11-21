@@ -10,6 +10,7 @@
 boolean opcionesAbiertas = false;
 float volumenMusica = 0.7;
 boolean ajustesLeidos = false;
+boolean ajustesCambiados = false;
 
 void leerAjustes() {
     ajustesLeidos = true;
@@ -44,12 +45,23 @@ void actualizarMusicaJuego() {
     }
     mision.musica.momento = mision.M_CALMA;
     boolean hablan = videollamadaActiva || faseLlamada == LLAMADA_HABLANDO;
-    mision.musica.atenuar = hablan ? 0.3 : 1;
+    // en las cinemáticas y en el encargo (que trae su propia música), sin música
+    // y en la pantalla negra entre un día y otro, silencio
+    mision.musica.atenuar = (cinematicaActiva() || musicaEncargoSonando() || autodestruyendo() || transicionDiaActiva()) ? 0 : (hablan ? 0.3 : 1);
 }
 
 void cambiarVolumen(float v) {
     volumenMusica = constrain(round(v * 20) / 20.0, 0, 1);
-    guardarAjustes();
+    ajustesCambiados = true;   // se guarda al cerrar el panel, no en cada clic
+}
+
+// Cierra el panel y, si cambió algo, lo guarda en disco una sola vez.
+void cerrarOpciones() {
+    opcionesAbiertas = false;
+    if (ajustesCambiados) {
+        guardarAjustes();
+        ajustesCambiados = false;
+    }
 }
 
 // --- El panel (un papel encima del menú) ---
@@ -150,7 +162,7 @@ void clicEnOpciones() {
     float[] b = barraVolumen();
     float k = celdaOpciones();
     if (dentro(botonVolverOpciones())) {
-        opcionesAbiertas = false;
+        cerrarOpciones();
         guardarAjustes();
     } else if (dentro(botonMenos())) {
         cambiarVolumen(volumenMusica - 0.1);
@@ -159,7 +171,7 @@ void clicEnOpciones() {
     } else if (dentro(new float[] {b[0], b[1] - 4 * k, b[2], b[3] + 8 * k})) {
         cambiarVolumen((mouseX - b[0]) / b[2]);
     } else if (!dentro(cajaOpciones())) {
-        opcionesAbiertas = false;   // clic afuera: se cierra
+        cerrarOpciones();   // clic afuera: se cierra
         guardarAjustes();
     }
 }
@@ -170,7 +182,7 @@ void teclaOpciones() {
     } else if (key == CODED && (keyCode == RIGHT || keyCode == UP)) {
         cambiarVolumen(volumenMusica + 0.05);
     } else if (key == 0 || key == ENTER || key == RETURN) {
-        opcionesAbiertas = false;   // Esc (ya convertido en 0) o Enter
+        cerrarOpciones();   // Esc (ya convertido en 0) o Enter
         guardarAjustes();
     }
 }

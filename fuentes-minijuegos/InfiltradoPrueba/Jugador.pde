@@ -14,7 +14,7 @@ class Jugador {
   int botellas;               // para lanzar y distraer
   // Ducto de ventilacion
   boolean enDucto;
-  int rejillaOrigen, opcionDucto;
+  int opcionDucto;
   ArrayList<Integer> destinosDucto;
   int[] distanciasDucto;
   float esperaDucto, viajeDucto;

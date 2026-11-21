@@ -130,8 +130,3 @@ float factorPeso(Jugador j) {
 float ruidoPeso(Jugador j) {
   return 0.08 * j.peso;
 }
-
-// Valor de todo el botin que hay en el mapa al empezar
-int valorTotalBotin() {
-  return mapa.valorBotinTotal;
-}

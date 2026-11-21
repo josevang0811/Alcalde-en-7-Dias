@@ -8,6 +8,8 @@ juego/AlcaldeDigitalNuevo/data/musica/*.wav
 juego/AlcaldeDigitalNuevo/data/musica/*.mp3
 juego/AlcaldeDigitalNuevo/data/musica/*.ogg
 juego/AlcaldeDigitalNuevo/data/musica/creditos.txt
+# La canción del encargo también es de otro autor
+juego/AlcaldeDigitalNuevo/data/encargo/mision_imposible.wav
 *.mp3
 
 # Archivos que genera el juego o Processing al correr

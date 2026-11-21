@@ -19,10 +19,7 @@
 
 final int ESPERA_INICIO_TV = 1500;    // la pantalla de inicio, ya con la TV en grande
 final int SALTO_TV = 300;             // el salto de imagen al empezar
-final int DURACION_NOTICIERO = 20000;
 final int MS_POR_REEL = 5000;
-final int SALTO_FIN_TV = 340;
-final int ESPERA_FIN_TV = 1800;       // la pantalla de inicio otra vez, antes de alejarse
 
 PImage imgNoticieroTV, imgInicioTV, imgMapaTV, imgGraficaTV, imgVolumenReel;
 PImage[] reelsBarrio = new PImage[8];
@@ -81,17 +78,15 @@ void dibujarNoticiero(float visible) {
     if (t < 0 && reelsDelNoticiero == null) {
         elegirReels();
     }
-    int fin = SALTO_TV + DURACION_NOTICIERO;
-    if (t >= fin + SALTO_FIN_TV + ESPERA_FIN_TV) {
-        alejarTV();   // terminó: la cámara vuelve sola a la oficina
-    }
-    boolean conNoticiero = t >= 0 && t < fin + SALTO_FIN_TV;
+    // el noticiero sigue hasta que el jugador sale (clic o Esc): ya no se
+    // cierra solo
+    boolean conNoticiero = t >= 0;
     if (conNoticiero) {
         dibujarPantallaCompleta(imgNoticieroTV, visible, 0, 1);
         int dentro = t - SALTO_TV;
         if (visible > 0.9 && dentro > -SALTO_TV) {
             dibujarReelsTV(max(0, dentro));
-            dibujarNubesTV(dentro);
+            dibujarGloboPresentador(dentro);   // cada 5 s cambia, como en la TV de la oficina
             dibujarFranjaTitulares(pcX(17.663), pcY(88.456), pcAncho(77.057), pcAlto(5.355), 32, true);
             dibujarArrobaTV();
         }
@@ -101,9 +96,6 @@ void dibujarNoticiero(float visible) {
     if (t < SALTO_TV) {
         float u = t < 0 ? 0 : t / (float) SALTO_TV;
         dibujarPantallaCompleta(imgInicioTV, visible * (1 - u), saltoImagen(u), 1 + 0.7 * sin(PI * u));
-    } else if (t >= fin) {
-        float u = constrain((t - fin) / (float) SALTO_FIN_TV, 0, 1);
-        dibujarPantallaCompleta(imgInicioTV, visible * u, saltoImagen(1 - u), 1 + 0.6 * sin(PI * u));
     }
     if (zoomTV < 0.01) {
         reelsDelNoticiero = null;
@@ -179,14 +171,15 @@ void dibujarReelsTV(int t) {
     noStroke();
     fill(#141824);
     rect(x, y, w, h);
-    int actual = min(3, t / MS_POR_REEL);
+    int vuelta = t / MS_POR_REEL;   // los reels pasan en rueda mientras se mire
+    int actual = vuelta % reelsDelNoticiero.length;
     float u = 1;
-    if (actual > 0) {
-        u = curvaReel(constrain((t - actual * MS_POR_REEL) / 550.0, 0, 1));
+    if (vuelta > 0) {
+        u = curvaReel(constrain((t - vuelta * MS_POR_REEL) / 550.0, 0, 1));
     }
     clip(x, y, w, h);
-    if (actual > 0 && u < 1) {
-        dibujarReelEn(reelsDelNoticiero[actual - 1], x, y - u * h, w, h);
+    if (vuelta > 0 && u < 1) {
+        dibujarReelEn(reelsDelNoticiero[(actual + reelsDelNoticiero.length - 1) % reelsDelNoticiero.length], x, y - u * h, w, h);
     }
     dibujarReelEn(reelsDelNoticiero[actual], x, y + (1 - u) * h, w, h);
     noClip();
@@ -210,25 +203,6 @@ void dibujarReelEn(PImage r, float x, float y, float w, float h) {
 // ---------------------------------------------------------------------------
 // El globo del presentador: el mapa (primeros 10 s) y la gráfica (10 a 20 s)
 // ---------------------------------------------------------------------------
-
-void dibujarNubesTV(int t) {
-    int mitad = DURACION_NOTICIERO / 2;
-    if (t < 0) {
-        return;
-    }
-    if (t < mitad + 240) {
-        float[] e = t < mitad ? entradaNube(t - 120) : salidaNube(t - mitad);
-        if (e[0] > 0) {
-            dibujarMapaTV(e[0], e[1]);
-        }
-    }
-    if (t >= mitad && t < DURACION_NOTICIERO + 240) {
-        float[] e = t < DURACION_NOTICIERO ? entradaNube(t - mitad - 120) : salidaNube(t - DURACION_NOTICIERO);
-        if (e[0] > 0) {
-            dibujarGraficaTV(e[0], e[1], t - mitad);
-        }
-    }
-}
 
 // {opacidad, escala} al aparecer (rebota un poquito) y al irse
 float[] entradaNube(int t) {
@@ -324,6 +298,8 @@ int duenoDeBarrio(int z) {
 final int[] ASIENTO_BARRA = {0, 1, 3, 2};               // azul, rojo, verde, naranja
 final float[] X_BARRA = {94.5, 229, 361, 493.5};        // centros en el dibujo (615 x 360)
 
+boolean tvChica = false;   // se está dibujando en la TV de la oficina (sin recortes)
+
 void dibujarGraficaTV(float alfa, float escala, int t) {
     float izq = 23.874, arriba = 14.951, ancho = 23.874, alto = 25.035;
     pushMatrix();
@@ -349,7 +325,7 @@ void dibujarGraficaTV(float alfa, float escala, int t) {
         fill(COLOR_ASIENTO[asiento], 255 * alfa);
         rect(bx, by, bw, bh);
         // rayitas en diagonal, como en el dibujo
-        if (bh > 2) {
+        if (bh > 2 && !tvChica) {
             clip(bx, by, bw, bh);
             stroke(255, 255, 255, 60 * alfa);
             strokeWeight(max(1, 3 * k));
@@ -410,4 +386,117 @@ void dibujarArrobaTV() {
         celda *= 0.85;
     }
     textoPixel(autor, pcX(12.9), pcY(91.2), celda, 1, #141010, 0, 0, 0, false, CENTER, CENTER);
+}
+
+// ---------------------------------------------------------------------------
+// La TV de la oficina, siempre encendida
+// ---------------------------------------------------------------------------
+// La pantalla de la TV en el dibujo de la oficina (coordenadas de la escena).
+// El noticiero se dibuja como si llenara la cámara y se encoge a ese
+// rectángulo. Cada 10 s el globo del presentador cambia: el mapa, la gráfica
+// de los candidatos y, si ya se publicó algo, la del impacto.
+final float TV_OFICINA_X = 720, TV_OFICINA_Y = 30, TV_OFICINA_ANCHO = 301, TV_OFICINA_ALTO = 169;
+final int FASE_TV_OFICINA = 5000;
+int inicioCicloTV = 0;          // desde cuándo cuenta la rotación del globo
+Informe impactoVisto;           // el último informe que ya empezó a salir en la TV
+
+void dibujarNoticieroOficina(float x, float y, float w, float h) {
+    pushMatrix();
+    translate(x, y);
+    scale(w / camAncho, h / camAlto);
+    translate(-camX, -camY);
+    tvChica = true;
+    image(imgNoticieroTV, camX, camY, camAncho, camAlto);
+    // los reels pasan uno cada 5 s
+    PImage r = todosLosReels[(millis() / MS_POR_REEL) % todosLosReels.length];
+    image(r, pcX(63.043), pcY(9.318), pcAncho(25.582), pcAlto(75.869));
+    float lado = pcAncho(4.2);
+    image(imgVolumenReel, pcX(86.4) - lado / 2, pcY(81.4) - lado / 2, lado, lado);
+    // el globo del presentador: apenas hay una publicación nueva y se ve la
+    // oficina, la rotación vuelve a empezar por su impacto
+    if (informeActual != impactoVisto && informeActual != null && informeActual.apoyoAntes >= 0
+        && estado == MENU && !informeVisible()) {
+        impactoVisto = informeActual;
+        inicioCicloTV = millis();
+    }
+    dibujarGloboPresentador(millis() - inicioCicloTV);
+    dibujarFranjaTitulares(pcX(17.663), pcY(88.456), pcAncho(77.057), pcAlto(5.355), 32, true);
+    dibujarArrobaTV();
+    tvChica = false;
+    popMatrix();
+}
+
+// El globo del presentador cambia cada 5 s: el impacto de lo último que se
+// publicó (si hay), la gráfica de los candidatos y el mapa. Lo usan la TV de
+// la oficina y el noticiero en grande.
+void dibujarGloboPresentador(int t) {
+    if (t < 0) {
+        return;
+    }
+    boolean conImpacto = informeActual != null && informeActual.apoyoAntes >= 0;
+    int fases = conImpacto ? 3 : 2;
+    int ciclo = t % (FASE_TV_OFICINA * fases);
+    int fase = ciclo / FASE_TV_OFICINA, dentro = ciclo % FASE_TV_OFICINA;
+    if (!conImpacto) {
+        fase++;   // sin publicación: solo la gráfica y el mapa
+    }
+    float[] e = dentro < FASE_TV_OFICINA - 240 ? entradaNube(dentro - 120) : salidaNube(dentro - (FASE_TV_OFICINA - 240));
+    if (e[0] <= 0) {
+        return;
+    }
+    if (fase == 0) {
+        dibujarImpactoTV(informeActual, e[0], e[1], dentro);
+    } else if (fase == 1) {
+        dibujarGraficaTV(e[0], e[1], dentro);
+    } else {
+        dibujarMapaTV(e[0], e[1]);
+    }
+}
+
+// El impacto de lo último que se publicó, en el globo del presentador: el
+// barrio y tres barras grandes (se tienen que leer en la TV pequeña).
+void dibujarImpactoTV(Informe inf, float alfa, float escala, int t) {
+    // va dentro del globo de papel que ya trae el dibujo del noticiero
+    // (de 24.8 a 53.6 % de ancho y de 12.6 a 41.7 % de alto), con margen
+    // para no tocar sus bordes rasgados
+    float izq = 27.4, arriba = 16.8, ancho = 23.6, alto = 21.5;
+    pushMatrix();
+    escalarNube(izq, arriba, ancho, alto, escala);
+    float x = pcX(izq), y = pcY(arriba), w = pcAncho(ancho), h = pcAlto(alto);
+    float k = h / 58;
+    float crece = facilSalida(constrain((t - 200) / 900.0, 0, 1));
+    noStroke();
+    tint(255, 255 * alfa);
+    String barrio = inf.barrio.toUpperCase();
+    float kt = min(k * 1.2, w / medirPixel(barrio));
+    textoPixel(barrio, x + w / 2, y + 4 * k, kt, #2b1a2a, CENTER, CENTER);
+    int difCred = inf.credDespues - inf.credAntes;
+    int difApoyo = inf.apoyoDespues - inf.apoyoAntes;
+    filaImpactoTV("APOYO", (difApoyo > 0 ? "+" : "") + difApoyo, inf.apoyoAntes, inf.apoyoDespues, 100,
+        difApoyo >= 0 ? #2f8a3e : #c8302a, x, y + 11 * k, w, k, crece, alfa);
+    filaImpactoTV("CREDIBILIDAD", (difCred > 0 ? "+" : "") + difCred, inf.credAntes, inf.credDespues, 100,
+        difCred >= 0 ? #2f8a3e : #c8302a, x, y + 27 * k, w, k, crece, alfa);
+    filaImpactoTV("LO VIERON", miles(round(inf.vistas * crece)), 0, inf.vistas, max(1, inf.vistas),
+        #2f6fc0, x, y + 43 * k, w, k, crece, alfa);
+    noTint();
+    popMatrix();
+}
+
+// Una fila: el nombre y el valor arriba, y la barra que va de "antes" a "ahora"
+void filaImpactoTV(String nombre, String valor, int antes, int ahora, int maximo, color c, float x, float y, float w, float k, float crece, float alfa) {
+    // que el nombre y el valor quepan juntos en el ancho
+    float kl = min(k, w / (medirPixel(nombre) + medirPixel(valor) + 6));
+    textoPixel(nombre, x, y + 3.5 * k, kl, #2b1a2a, LEFT, CENTER);
+    textoPixel(valor, x + w, y + 3.5 * k, kl, c, RIGHT, CENTER);
+    float by = y + 8 * k, bh = 5 * k;
+    fill(#2b1a2a, 255 * alfa);
+    rect(x - k * 0.5, by - k * 0.5, w + k, bh + k);
+    fill(#d9bf8c, 255 * alfa);
+    rect(x, by, w, bh);
+    float a = constrain(antes / (float) maximo, 0, 1);
+    float b = constrain(lerp(antes, ahora, crece) / maximo, 0, 1);
+    fill(#a8987e, 255 * alfa);
+    rect(x, by, w * min(a, b), bh);
+    fill(c, 255 * alfa);
+    rect(x + w * min(a, b), by, w * abs(b - a), bh);
 }

@@ -279,7 +279,8 @@ void marcarFlecha(Candidato c, int flecha) {
     cola.clear();
     for (int k = 0; k < largoSecuencia(); k++) cola.add(int(random(4)));
     c.progresoPegar = 0.05;
-    avisarA(c, "¡Esa no era! La secuencia vuelve a empezar");
+    if (c == yo) errorConversacion = millis();   // se ve en el panel (dibujarSecuenciaJugador)
+    else avisarA(c, "¡Esa respuesta empeora las cosas! La conversación vuelve a empezar");
   }
 }
 
@@ -348,39 +349,117 @@ boolean teclaSecuencia() {
   return true;
 }
 
-// Las flechas de la secuencia del jugador, grandes encima del ciudadano
+// La secuencia del jugador, encima del ciudadano. En vez de flechas, cada
+// paso es una conversación: el ciudadano cuenta lo que le llegó y alrededor
+// salen cuatro palabras, una en cada dirección (arriba, derecha, abajo,
+// izquierda). Solo una es la respuesta responsable; las otras tres son lo que
+// hace que el problema crezca. Se elige con las mismas teclas (flechas o
+// WASD) o con el gesto de la mano: la dirección de la palabra es la tecla.
+// Por dentro sigue siendo la misma cola de direcciones (marcarFlecha), así
+// que los bots y el juego en red no cambian.
+
+// situación | palabra correcta | tres palabras que empeoran las cosas
+final String[][] CONVERSACIONES = {
+  {"ME LLEGÓ UN AUDIO: DICE QUE EL ALCALDE ROBA", "BUSCA LA FUENTE", "REENVÍALO YA", "CRÉELO Y YA", "INSULTA AL ALCALDE"},
+  {"EN UN GRUPO SE BURLAN DE MI HIJO", "DENÚNCIALO", "ÚNETE A LA BURLA", "NO ES PARA TANTO", "BÚRLATE DE ELLOS"},
+  {"UN PERFIL SIN FOTO ME PIDE MI CLAVE", "NO SE LA DES", "DÁSELA RÁPIDO", "MÁNDALE TUS DATOS", "AGRÉGALO"},
+  {"ESTA FOTO DEL CANDIDATO PARECE EDITADA", "BUSCA EL ORIGINAL", "COMPÁRTELA", "CRÉELA ASÍ", "BÚRLATE DE ÉL"},
+  {"DICEN QUE LA GENTE DEL PUERTO ES LADRONA", "NO GENERALICES", "REPÍTELO", "ÚNETE AL ODIO", "SEÑALA A ALGUIEN"},
+  {"ME DICEN QUE GANÉ UN PREMIO SI DOY UN CÓDIGO", "ES UNA ESTAFA", "DA EL CÓDIGO", "¡QUÉ SUERTE!", "PÁSALO A OTROS"},
+  {"HAY UN RETO VIRAL QUE ES PELIGROSO", "NO LO HAGAS", "GRÁBATE HACIÉNDOLO", "RETA A TUS AMIGOS", "SÚBELO YA"},
+  {"PUBLICARON DÓNDE VIVE MI VECINA", "REPÓRTALO", "COMPÁRTELO", "NO ES PROBLEMA", "AGREGA MÁS DATOS"},
+};
+
+int errorConversacion = -10000;   // cuándo eligió mal el jugador
+
+// La conversación que toca en el paso k de la secuencia con ese ciudadano
+String[] conversacionDe(Ciudadano z, int k) {
+  int base = abs(ciudadanos.indexOf(z) * 5);
+  return CONVERSACIONES[(base + k * 3) % CONVERSACIONES.length];
+}
+
 void dibujarSecuenciaJugador() {
   Ciudadano z = secuenciaCon.get(yo.id);
   java.util.ArrayDeque<Integer> cola = secuencias.get(yo.id);
-  if (z == null || cola == null) return;
-  float sx = aPantallaX(pantallaX(z.x, z.y)), sy = aPantallaY(pantallaY(z.x, z.y) - 52);
+  if (z == null || cola == null || cola.isEmpty()) return;
   int largo = largoSecuencia();
   int hechas = largo - cola.size();
-  float tam = 20 * pixel, sep = 4 * pixel;
-  float total = largo * tam + (largo - 1) * sep;
-  caja(sx - total / 2 - 6 * pixel, sy - tam / 2 - 6 * pixel, total + 12 * pixel, tam + 22 * pixel, 225);
-  textFont(fuente, 7 * pixel);
-  fill(CREMA, 190);
-  textAlign(CENTER, CENTER);
-  text("F para dejarlo", sx, sy + tam / 2 + 5 * pixel);
-  Integer[] faltan = cola.toArray(new Integer[0]);
-  for (int k = 0; k < largo; k++) {
-    float x = sx - total / 2 + k * (tam + sep);
-    boolean hecha = k < hechas;
-    boolean sigue = k == hechas;
-    noStroke();
-    fill(hecha ? color(90, 170, 110) : (sigue ? CREMA : color(90, 80, 74)));
-    rect(x, sy - tam / 2, tam, tam, 3 * pixel);
-    if (hecha) continue;
-    int f = faltan[k - hechas];
-    pushMatrix();
-    translate(x + tam / 2, sy);
-    rotate(HALF_PI * f);
-    fill(sigue ? CAFE : CREMA);
-    triangle(0, -tam * 0.32, tam * 0.28, tam * 0.05, -tam * 0.28, tam * 0.05);
-    rect(-tam * 0.1, 0, tam * 0.2, tam * 0.3);
-    popMatrix();
+  int f = cola.peek();                 // la dirección de la palabra correcta
+  String[] conv = conversacionDe(z, hechas);
+  boolean seEquivoco = millis() - errorConversacion < 1400;
+  // las palabras en su lugar: la correcta en la dirección f, las otras en las demás
+  String[] palabras = new String[4];
+  int mala = 2;
+  for (int d = 0; d < 4; d++) {
+    palabras[d] = d == f ? conv[1] : conv[mala++];
   }
+  // abajo: las respuestas que ya dio (si no caben, solo las últimas)
+  java.util.ArrayList<String> dadas = new java.util.ArrayList<String>();
+  for (int k = 0; k < hechas; k++) {
+    dadas.add(conversacionDe(z, k)[1]);
+  }
+  String abajo = seEquivoco ? "ESA RESPUESTA EMPEORA LAS COSAS" : (hechas == 0 ? "ELIGE LA RESPUESTA RESPONSABLE · F PARA DEJARLO" : String.join(" · ", dadas));
+  // El panel se mide con lo que lleva adentro, para que ningún texto se salga
+  float pad = 8 * pixel;
+  textFont(fuente, 7 * pixel);
+  String situacion = "«" + conv[0] + "»";
+  float anchoSituacion = textWidth(situacion);
+  textFont(fuenteNegrita, 8 * pixel);
+  float[] anchoPalabra = new float[4];
+  for (int d = 0; d < 4; d++) {
+    anchoPalabra[d] = textWidth(palabras[d]) + 10 * pixel;
+  }
+  float lado = max(anchoPalabra[1], anchoPalabra[3]);
+  float separacion = max(58 * pixel, lado / 2 + 20 * pixel);   // del centro a las palabras de los lados
+  float anchoCruz = separacion * 2 + lado;
+  float anchoMax = width - 12 * pixel;
+  textFont(fuente, 7 * pixel);
+  while (dadas.size() > 1 && textWidth(abajo) + pad * 2 > anchoMax) {
+    dadas.remove(0);
+    abajo = "… " + String.join(" · ", dadas);
+  }
+  float ancho = min(anchoMax, max(max(anchoSituacion, textWidth(abajo)) + pad * 2, max(anchoCruz + pad, 196 * pixel)));
+  float alto = 96 * pixel;
+  float sx = aPantallaX(pantallaX(z.x, z.y));
+  float sy = aPantallaY(pantallaY(z.x, z.y) - 40) - alto;   // el panel termina encima de la cabeza
+  float x0 = constrain(sx - ancho / 2, 6 * pixel, width - ancho - 6 * pixel);
+  float y0 = max(6 * pixel, sy);
+  float cx = x0 + ancho / 2;
+  caja(x0, y0, ancho, alto, 232);
+  if (seEquivoco) {
+    noFill();
+    stroke(216, 58, 52);
+    strokeWeight(2 * pixel);
+    rect(x0, y0, ancho, alto, 4 * pixel);
+    noStroke();
+  }
+  // lo que le llegó al ciudadano
+  textAlign(CENTER, CENTER);
+  fill(CREMA, 200);
+  text(situacion, cx, y0 + 10 * pixel);
+  // la cruz de palabras: arriba, derecha, abajo, izquierda
+  float cy = y0 + 46 * pixel;
+  float[][] lugar = {{0, -17 * pixel}, {separacion, 0}, {0, 17 * pixel}, {-separacion, 0}};
+  textFont(fuenteNegrita, 8 * pixel);
+  for (int d = 0; d < 4; d++) {
+    float px = cx + lugar[d][0], py = cy + lugar[d][1];
+    float w = anchoPalabra[d];
+    noStroke();
+    fill(246, 236, 200, 235);
+    rect(px - w / 2, py - 7 * pixel, w, 14 * pixel, 3 * pixel);
+    fill(CAFE);
+    text(palabras[d], px, py - pixel * 0.5);
+  }
+  // en el centro, cuántas van
+  textFont(fuente, 7 * pixel);
+  fill(CREMA, 170);
+  text((hechas + 1) + "/" + largo, cx, cy);
+  if (seEquivoco) {
+    fill(240, 110, 100);
+  } else {
+    fill(hechas > 0 ? color(150, 220, 160) : color(246, 236, 200, 150));
+  }
+  text(abajo, cx, y0 + alto - 9 * pixel);
 }
 
 // "E: rápido · mantén E: asegurar" encima del ciudadano que alcanza el jugador
@@ -392,7 +471,7 @@ void dibujarAyudaGente() {
   if (evento == LIVES) {
     if (z.asegurado) s = z.dueno == yo.id ? "Este live ya es tuyo" : "Este live ya es de " + candidatos.get(z.dueno).nombre;
     else if (z.ocupadoPor >= 0 && z.ocupadoPor != yo.id) s = candidatos.get(z.ocupadoPor).nombre + " lo está reclamando";
-    else s = "F: reclamar el live (6 flechas)";
+    else s = "F: reclamar el live (6 respuestas)";
   } else if (z.asegurado) s = z.dueno == yo.id ? "Este ya es tuyo y está asegurado" : "Asegurado por " + candidatos.get(z.dueno).nombre;
   else if (z.ocupadoPor >= 0 && z.ocupadoPor != yo.id) s = candidatos.get(z.ocupadoPor).nombre + " lo está convenciendo";
   else if (z.dueno == yo.id) s = "Es tuyo · F para asegurarlo";

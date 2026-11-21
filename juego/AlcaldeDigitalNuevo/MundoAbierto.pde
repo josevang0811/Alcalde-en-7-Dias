@@ -25,8 +25,8 @@ class MundoAbierto {
 // parque, donde se reúnen los otros tres candidatos (manejados por el
 // computador). Cuando están los cuatro empieza la ronda: 60 segundos para
 // pegar volantes en las carteleras del parque y sus calles. Pegar encima del
-// volante de otro le quita el punto. Cada uno tiene 3 botellas: al que le
-// pegan se queda quieto 2 segundos. Al final, el que más puntos tenga gana
+// volante de otro le quita el punto. Las botellas son ilimitadas (con una
+// pausa corta entre una y otra): al que le pegan se queda quieto 2 segundos. Al final, el que más puntos tenga gana
 // apoyo (+20, +10, 0, -5).
 //
 // El dibujo de la ciudad sale de data/mundo/, que se arma con
@@ -79,7 +79,7 @@ void dibujar() {
   camY += (objY - camY) * min(1, dt * 8);
   limitarCamara();
 
-  background(150, 196, 226);
+  background(89, 132, 159);   // el fondo, con la misma paleta profunda de data/mundo
   dibujarCiudad();
   dibujarHud();
 }
@@ -105,7 +105,7 @@ void teclaPresionada() {
   } else {
     if (k == 'e' && !accionRapida(yo)) teclaCarro();
     if (k == 'f') accionAsegurar(yo);
-    if (k == 'q' && rondaActiva()) lanzarDe(yo);
+    if (k == 'q' && rondaActiva()) lanzarAlMouse(yo);   // hacia el cursor
   }
   if (modoPrueba && (k == '1' || k == '2' || k == '3') && estadoRonda != RONDA && estadoRonda != CUENTA) {
     evento = k == '1' ? VOLANTES : (k == '2' ? GENTE : LIVES);
@@ -176,6 +176,7 @@ class Botella extends Movil {
   float x, y, vx, vy, recorrido;
   int dueno;
   boolean viva = true;
+  Candidato objetivo;   // si se lanzó con el cursor encima de un rival, lo sigue
 
   Botella(Candidato c, float dx, float dy) {
     float l = sqrt(dx * dx + dy * dy);
@@ -197,6 +198,13 @@ class Botella extends Movil {
   void actualizar(float dt) {
     int pasos = 4;
     for (int k = 0; k < pasos && viva; k++) {
+      if (objetivo != null && objetivo.aturdido <= 0) {
+        float dx = objetivo.x - x, dy = objetivo.y - y, l = sqrt(dx * dx + dy * dy);
+        if (l > 0.01) {
+          vx = dx / l * VELOCIDAD_BOTELLA;
+          vy = dy / l * VELOCIDAD_BOTELLA;
+        }
+      }
       x += vx * dt / pasos;
       y += vy * dt / pasos;
       recorrido += VELOCIDAD_BOTELLA * dt / pasos;
@@ -248,7 +256,7 @@ class Botella extends Movil {
 boolean lanzarBotella(Candidato c, float dx, float dy) {
   if (c.botellas <= 0 || c.aturdido > 0 || esperaLanzar[c.id] > 0) return false;
   if (dx * dx + dy * dy < 0.0001) return false;
-  c.botellas--;
+  // las botellas son ilimitadas: solo hay una pausa corta entre una y otra
   esperaLanzar[c.id] = ESPERA_LANZAR;
   c.mirarHacia(c.x + dx, c.y + dy);
   botellasVolando.add(new Botella(c, dx, dy));
@@ -275,6 +283,71 @@ void lanzarDe(Candidato yo) {
   }
   if (blanco != null) lanzarBotella(yo, blanco.x - yo.x, blanco.y - yo.y);
   else lanzarBotella(yo, yo.dirX, yo.dirY);
+}
+
+
+// --- Apuntar con el mouse ---
+// La botella va hacia el cursor. Si el cursor está encima de un rival (a
+// tiro), se le apunta a él y le pega; si no, cae donde está el cursor.
+float[] mouseEnMundo() {
+  float nx = (mouseX - aPantallaX(0)) / pixel, ny = (mouseY - aPantallaY(0)) / pixel;
+  float a = (nx - OX) / T, b = (ny - OY) * 2 / T;
+  return new float[] {(a + b) / 2, (b - a) / 2};
+}
+
+// El rival que tiene el cursor encima (su dibujo mide 16 x 28)
+Candidato rivalBajoMouse(Candidato yo) {
+  float nx = (mouseX - aPantallaX(0)) / pixel, ny = (mouseY - aPantallaY(0)) / pixel;
+  Candidato mejor = null;
+  float mejorY = -1e9;
+  for (Candidato c : candidatos) {
+    if (c == yo) continue;
+    float sx = pantallaX(c.x, c.y), sy = pantallaY(c.x, c.y);
+    if (nx >= sx - 10 && nx <= sx + 10 && ny >= sy - 30 && ny <= sy + 4 && sy > mejorY) {
+      mejor = c;   // si hay dos, el de adelante
+      mejorY = sy;
+    }
+  }
+  return mejor;
+}
+
+void lanzarAlMouse(Candidato yo) {
+  Candidato blanco = rivalBajoMouse(yo);
+  if (blanco != null) {
+    if (lanzarBotella(yo, blanco.x - yo.x, blanco.y - yo.y)) {
+      botellasVolando.get(botellasVolando.size() - 1).objetivo = blanco;   // lo sigue
+    }
+    return;
+  }
+  float[] m = mouseEnMundo();
+  lanzarBotella(yo, m[0] - yo.x, m[1] - yo.y);
+}
+
+// Clic izquierdo en la ronda: lanzar (lo llama el mousePressed del juego)
+void clicLanzar() {
+  if (rondaActiva() && modoRed != INVITADO && yo.aturdido <= 0) lanzarAlMouse(yo);
+}
+
+// La mira: un aro rojo en el rival que tiene el cursor encima (a tiro) y
+// una cruz pequeña donde está el mouse
+void dibujarMiraBotella() {
+  Candidato c = rivalBajoMouse(yo);
+  noFill();
+  strokeWeight(2 * pixel);
+  if (c != null) {
+    float d = dist(c.x, c.y, yo.x, yo.y);
+    float sx = aPantallaX(pantallaX(c.x, c.y)), sy = aPantallaY(pantallaY(c.x, c.y) - 13);
+    stroke(d <= ALCANCE_BOTELLA ? color(230, 60, 50) : color(150, 140, 130), 230);
+    ellipse(sx, sy, 26 * pixel, 34 * pixel);
+  }
+  stroke(c != null ? color(230, 60, 50) : color(255, 243, 214), 220);
+  strokeWeight(1.5 * pixel);
+  float r = 5 * pixel;
+  line(mouseX - r, mouseY, mouseX - r * 0.4, mouseY);
+  line(mouseX + r * 0.4, mouseY, mouseX + r, mouseY);
+  line(mouseX, mouseY - r, mouseX, mouseY - r * 0.4);
+  line(mouseX, mouseY + r * 0.4, mouseX, mouseY + r);
+  noStroke();
 }
 
 void actualizarBotellas(float dt) {
@@ -428,6 +501,31 @@ class Bot {
     if (tiempoYendo > 40 || ruta == null) {
       c.x = lugarX;
       c.y = lugarY;
+    }
+  }
+
+  // Después de la ronda: caminan de un punto a otro del parque, con pausas
+  float pausaPaseo;
+  void pasear(float dt) {
+    if (c.aturdido > 0) {
+      c.moviendose = false;
+      return;
+    }
+    if (pausaPaseo > 0) {
+      pausaPaseo -= dt;
+      c.moviendose = false;
+      return;
+    }
+    if (ruta == null) {
+      PVector p = puntoLibreCerca(centroX + random(-8, 8), centroY + random(-8, 8));
+      irA(p.x, p.y);
+      if (ruta == null) pausaPaseo = 1;
+      return;
+    }
+    if (seguirRuta(dt, false)) {
+      ruta = null;
+      c.moviendose = false;
+      pausaPaseo = random(0.6, 2.2);
     }
   }
 
@@ -696,10 +794,6 @@ class Candidato extends Movil {
       frente[k] = loadImage("personas/" + sprites + "_frente_" + k + ".png");
       espalda[k] = loadImage("personas/" + sprites + "_espalda_" + k + ".png");
     }
-  }
-
-  boolean esJugador() {
-    return bot == null;
   }
 
   public float px() {
@@ -1634,9 +1728,10 @@ ArrayList<PVector> rutaBFS(float x0, float y0, float x1, float y1) {
   ArrayList<PVector> celdas = new ArrayList<PVector>();
   int c = meta;
   while (c != inicio) {
-    celdas.add(0, new PVector(baldosaDe(c / celdasY), baldosaDe(c % celdasY)));
+    celdas.add(new PVector(baldosaDe(c / celdasY), baldosaDe(c % celdasY)));
     c = vieneDe[c];
   }
+  java.util.Collections.reverse(celdas);   // se armó desde la meta hacia atrás
   celdas.add(new PVector(b.x, b.y));
   // simplificar: de cada punto se salta al más lejano que se vea en línea recta
   ArrayList<PVector> ruta = new ArrayList<PVector>();
@@ -1720,9 +1815,15 @@ void dibujarCiudad() {
   float px = pantallaX(yo.x, yo.y), py = pantallaY(yo.x, yo.y);
   int lugarYo = objetos.size();
   for (int m = 0; m < moviles.size(); m++) if (moviles.get(m) == yo) lugarYo = lugar[m];
+  int[] orden = ordenDeMoviles(moviles, lugar);
+  int siguiente = 0;   // el próximo móvil de "orden" por dibujar
 
   for (int k = 0; k <= objetos.size(); k++) {
-    dibujarMovilesEn(moviles, lugar, k);
+    // los móviles que van justo antes del objeto k
+    while (siguiente < orden.length && lugar[orden[siguiente]] == k) {
+      moviles.get(orden[siguiente]).dibujar();
+      siguiente++;
+    }
     if (k == objetos.size()) break;
     Objeto o = objetos.get(k);
     if (!o.seCruza(vx1, vy1, vx2, vy2)) continue;
@@ -1740,23 +1841,28 @@ void dibujarCiudad() {
   popMatrix();
 }
 
-// Los móviles que van justo antes del objeto k, de atrás hacia adelante
-void dibujarMovilesEn(ArrayList<Movil> moviles, int[] lugar, int k) {
-  ArrayList<Movil> aqui = new ArrayList<Movil>();
-  for (int m = 0; m < moviles.size(); m++) {
-    if (lugar[m] == k) aqui.add(moviles.get(m));
+// Los móviles ordenados una sola vez por cuadro: primero por el objeto
+// delante del que van y, en el mismo lugar, de atrás hacia adelante
+// (x + y). Son pocos, así que basta la inserción simple. Antes se recorría
+// la lista completa por cada objeto de la ciudad.
+int[] ordenDeMoviles(ArrayList<Movil> moviles, int[] lugar) {
+  int n = moviles.size();
+  int[] orden = new int[n];
+  float[] fondo = new float[n];
+  for (int m = 0; m < n; m++) {
+    orden[m] = m;
+    fondo[m] = moviles.get(m).px() + moviles.get(m).py();
   }
-  // ordenar por profundidad (x + y): pocos elementos, inserción simple
-  for (int a = 1; a < aqui.size(); a++) {
-    Movil v = aqui.get(a);
+  for (int a = 1; a < n; a++) {
+    int v = orden[a];
     int b = a - 1;
-    while (b >= 0 && aqui.get(b).px() + aqui.get(b).py() > v.px() + v.py()) {
-      aqui.set(b + 1, aqui.get(b));
+    while (b >= 0 && (lugar[orden[b]] > lugar[v] || (lugar[orden[b]] == lugar[v] && fondo[orden[b]] > fondo[v]))) {
+      orden[b + 1] = orden[b];
       b--;
     }
-    aqui.set(b + 1, v);
+    orden[b + 1] = v;
   }
-  for (Movil v : aqui) v.dibujar();
+  return orden;
 }
 
 // Rombos rojos en las celdas bloqueadas que se ven (para revisar el mapa)
@@ -1826,15 +1932,6 @@ void configurarEventoRed(int tipo, int modo, int asiento, boolean[] humanos, Str
   for (int k = 0; k < 4; k++) ultimaEntrada[k] = -100000;
   crearCandidatos();
   configurarEvento(tipo);
-}
-
-boolean esLocal(Candidato c) {
-  return c == yo;
-}
-
-// Persona (no bot): el jugador de este PC o el de otro
-boolean esHumano(Candidato c) {
-  return c.bot == null;
 }
 
 String nombreVisible(Candidato c) {
@@ -2443,7 +2540,8 @@ void marcarFlecha(Candidato c, int flecha) {
     cola.clear();
     for (int k = 0; k < largoSecuencia(); k++) cola.add(int(random(4)));
     c.progresoPegar = 0.05;
-    avisarA(c, "¡Esa no era! La secuencia vuelve a empezar");
+    if (c == yo) errorConversacion = millis();   // se ve en el panel (dibujarSecuenciaJugador)
+    else avisarA(c, "¡Esa respuesta empeora las cosas! La conversación vuelve a empezar");
   }
 }
 
@@ -2512,39 +2610,117 @@ boolean teclaSecuencia() {
   return true;
 }
 
-// Las flechas de la secuencia del jugador, grandes encima del ciudadano
+// La secuencia del jugador, encima del ciudadano. En vez de flechas, cada
+// paso es una conversación: el ciudadano cuenta lo que le llegó y alrededor
+// salen cuatro palabras, una en cada dirección (arriba, derecha, abajo,
+// izquierda). Solo una es la respuesta responsable; las otras tres son lo que
+// hace que el problema crezca. Se elige con las mismas teclas (flechas o
+// WASD) o con el gesto de la mano: la dirección de la palabra es la tecla.
+// Por dentro sigue siendo la misma cola de direcciones (marcarFlecha), así
+// que los bots y el juego en red no cambian.
+
+// situación | palabra correcta | tres palabras que empeoran las cosas
+final String[][] CONVERSACIONES = {
+  {"ME LLEGÓ UN AUDIO: DICE QUE EL ALCALDE ROBA", "BUSCA LA FUENTE", "REENVÍALO YA", "CRÉELO Y YA", "INSULTA AL ALCALDE"},
+  {"EN UN GRUPO SE BURLAN DE MI HIJO", "DENÚNCIALO", "ÚNETE A LA BURLA", "NO ES PARA TANTO", "BÚRLATE DE ELLOS"},
+  {"UN PERFIL SIN FOTO ME PIDE MI CLAVE", "NO SE LA DES", "DÁSELA RÁPIDO", "MÁNDALE TUS DATOS", "AGRÉGALO"},
+  {"ESTA FOTO DEL CANDIDATO PARECE EDITADA", "BUSCA EL ORIGINAL", "COMPÁRTELA", "CRÉELA ASÍ", "BÚRLATE DE ÉL"},
+  {"DICEN QUE LA GENTE DEL PUERTO ES LADRONA", "NO GENERALICES", "REPÍTELO", "ÚNETE AL ODIO", "SEÑALA A ALGUIEN"},
+  {"ME DICEN QUE GANÉ UN PREMIO SI DOY UN CÓDIGO", "ES UNA ESTAFA", "DA EL CÓDIGO", "¡QUÉ SUERTE!", "PÁSALO A OTROS"},
+  {"HAY UN RETO VIRAL QUE ES PELIGROSO", "NO LO HAGAS", "GRÁBATE HACIÉNDOLO", "RETA A TUS AMIGOS", "SÚBELO YA"},
+  {"PUBLICARON DÓNDE VIVE MI VECINA", "REPÓRTALO", "COMPÁRTELO", "NO ES PROBLEMA", "AGREGA MÁS DATOS"},
+};
+
+int errorConversacion = -10000;   // cuándo eligió mal el jugador
+
+// La conversación que toca en el paso k de la secuencia con ese ciudadano
+String[] conversacionDe(Ciudadano z, int k) {
+  int base = abs(ciudadanos.indexOf(z) * 5);
+  return CONVERSACIONES[(base + k * 3) % CONVERSACIONES.length];
+}
+
 void dibujarSecuenciaJugador() {
   Ciudadano z = secuenciaCon.get(yo.id);
   java.util.ArrayDeque<Integer> cola = secuencias.get(yo.id);
-  if (z == null || cola == null) return;
-  float sx = aPantallaX(pantallaX(z.x, z.y)), sy = aPantallaY(pantallaY(z.x, z.y) - 52);
+  if (z == null || cola == null || cola.isEmpty()) return;
   int largo = largoSecuencia();
   int hechas = largo - cola.size();
-  float tam = 20 * pixel, sep = 4 * pixel;
-  float total = largo * tam + (largo - 1) * sep;
-  caja(sx - total / 2 - 6 * pixel, sy - tam / 2 - 6 * pixel, total + 12 * pixel, tam + 22 * pixel, 225);
-  textFont(fuente, 7 * pixel);
-  fill(CREMA, 190);
-  textAlign(CENTER, CENTER);
-  text("F para dejarlo", sx, sy + tam / 2 + 5 * pixel);
-  Integer[] faltan = cola.toArray(new Integer[0]);
-  for (int k = 0; k < largo; k++) {
-    float x = sx - total / 2 + k * (tam + sep);
-    boolean hecha = k < hechas;
-    boolean sigue = k == hechas;
-    noStroke();
-    fill(hecha ? color(90, 170, 110) : (sigue ? CREMA : color(90, 80, 74)));
-    rect(x, sy - tam / 2, tam, tam, 3 * pixel);
-    if (hecha) continue;
-    int f = faltan[k - hechas];
-    pushMatrix();
-    translate(x + tam / 2, sy);
-    rotate(HALF_PI * f);
-    fill(sigue ? CAFE : CREMA);
-    triangle(0, -tam * 0.32, tam * 0.28, tam * 0.05, -tam * 0.28, tam * 0.05);
-    rect(-tam * 0.1, 0, tam * 0.2, tam * 0.3);
-    popMatrix();
+  int f = cola.peek();                 // la dirección de la palabra correcta
+  String[] conv = conversacionDe(z, hechas);
+  boolean seEquivoco = millis() - errorConversacion < 1400;
+  // las palabras en su lugar: la correcta en la dirección f, las otras en las demás
+  String[] palabras = new String[4];
+  int mala = 2;
+  for (int d = 0; d < 4; d++) {
+    palabras[d] = d == f ? conv[1] : conv[mala++];
   }
+  // abajo: las respuestas que ya dio (si no caben, solo las últimas)
+  java.util.ArrayList<String> dadas = new java.util.ArrayList<String>();
+  for (int k = 0; k < hechas; k++) {
+    dadas.add(conversacionDe(z, k)[1]);
+  }
+  String abajo = seEquivoco ? "ESA RESPUESTA EMPEORA LAS COSAS" : (hechas == 0 ? "ELIGE LA RESPUESTA RESPONSABLE · F PARA DEJARLO" : String.join(" · ", dadas));
+  // El panel se mide con lo que lleva adentro, para que ningún texto se salga
+  float pad = 8 * pixel;
+  textFont(fuente, 7 * pixel);
+  String situacion = "«" + conv[0] + "»";
+  float anchoSituacion = textWidth(situacion);
+  textFont(fuenteNegrita, 8 * pixel);
+  float[] anchoPalabra = new float[4];
+  for (int d = 0; d < 4; d++) {
+    anchoPalabra[d] = textWidth(palabras[d]) + 10 * pixel;
+  }
+  float lado = max(anchoPalabra[1], anchoPalabra[3]);
+  float separacion = max(58 * pixel, lado / 2 + 20 * pixel);   // del centro a las palabras de los lados
+  float anchoCruz = separacion * 2 + lado;
+  float anchoMax = width - 12 * pixel;
+  textFont(fuente, 7 * pixel);
+  while (dadas.size() > 1 && textWidth(abajo) + pad * 2 > anchoMax) {
+    dadas.remove(0);
+    abajo = "… " + String.join(" · ", dadas);
+  }
+  float ancho = min(anchoMax, max(max(anchoSituacion, textWidth(abajo)) + pad * 2, max(anchoCruz + pad, 196 * pixel)));
+  float alto = 96 * pixel;
+  float sx = aPantallaX(pantallaX(z.x, z.y));
+  float sy = aPantallaY(pantallaY(z.x, z.y) - 40) - alto;   // el panel termina encima de la cabeza
+  float x0 = constrain(sx - ancho / 2, 6 * pixel, width - ancho - 6 * pixel);
+  float y0 = max(6 * pixel, sy);
+  float cx = x0 + ancho / 2;
+  caja(x0, y0, ancho, alto, 232);
+  if (seEquivoco) {
+    noFill();
+    stroke(216, 58, 52);
+    strokeWeight(2 * pixel);
+    rect(x0, y0, ancho, alto, 4 * pixel);
+    noStroke();
+  }
+  // lo que le llegó al ciudadano
+  textAlign(CENTER, CENTER);
+  fill(CREMA, 200);
+  text(situacion, cx, y0 + 10 * pixel);
+  // la cruz de palabras: arriba, derecha, abajo, izquierda
+  float cy = y0 + 46 * pixel;
+  float[][] lugar = {{0, -17 * pixel}, {separacion, 0}, {0, 17 * pixel}, {-separacion, 0}};
+  textFont(fuenteNegrita, 8 * pixel);
+  for (int d = 0; d < 4; d++) {
+    float px = cx + lugar[d][0], py = cy + lugar[d][1];
+    float w = anchoPalabra[d];
+    noStroke();
+    fill(246, 236, 200, 235);
+    rect(px - w / 2, py - 7 * pixel, w, 14 * pixel, 3 * pixel);
+    fill(CAFE);
+    text(palabras[d], px, py - pixel * 0.5);
+  }
+  // en el centro, cuántas van
+  textFont(fuente, 7 * pixel);
+  fill(CREMA, 170);
+  text((hechas + 1) + "/" + largo, cx, cy);
+  if (seEquivoco) {
+    fill(240, 110, 100);
+  } else {
+    fill(hechas > 0 ? color(150, 220, 160) : color(246, 236, 200, 150));
+  }
+  text(abajo, cx, y0 + alto - 9 * pixel);
 }
 
 // "E: rápido · mantén E: asegurar" encima del ciudadano que alcanza el jugador
@@ -2556,7 +2732,7 @@ void dibujarAyudaGente() {
   if (evento == LIVES) {
     if (z.asegurado) s = z.dueno == yo.id ? "Este live ya es tuyo" : "Este live ya es de " + candidatos.get(z.dueno).nombre;
     else if (z.ocupadoPor >= 0 && z.ocupadoPor != yo.id) s = candidatos.get(z.ocupadoPor).nombre + " lo está reclamando";
-    else s = "F: reclamar el live (6 flechas)";
+    else s = "F: reclamar el live (6 respuestas)";
   } else if (z.asegurado) s = z.dueno == yo.id ? "Este ya es tuyo y está asegurado" : "Asegurado por " + candidatos.get(z.dueno).nombre;
   else if (z.ocupadoPor >= 0 && z.ocupadoPor != yo.id) s = candidatos.get(z.ocupadoPor).nombre + " lo está convenciendo";
   else if (z.dueno == yo.id) s = "Es tuyo · F para asegurarlo";
@@ -2675,6 +2851,7 @@ void dibujarHud() {
     dibujarReloj();
     dibujarLista();
     dibujarBotellasHud();
+    dibujarMiraBotella();
     if (evento == VOLANTES) {
       dibujarAyudaPegar();
     } else {
@@ -2822,20 +2999,20 @@ void dibujarLista() {
   }
 }
 
+// Las botellas no se acaban: el recuadro solo recuerda la tecla
 void dibujarBotellasHud() {
   float x = 10 * pixel, y = height - 52 * pixel;
-  caja(x, y, 108 * pixel, 24 * pixel, 210);
   textFont(fuenteNegrita, 9 * pixel);
+  String texto = "Botellas ilimitadas · Q o clic: al cursor";
+  float w = textWidth(texto) + 34 * pixel;
+  caja(x, y, w, 24 * pixel, 210);
+  noStroke();
+  fill(90, 170, 110);
+  rect(x + 8 * pixel, y + 7 * pixel, 6 * pixel, 12 * pixel, 1.5 * pixel);
+  rect(x + 9.5 * pixel, y + 4 * pixel, 3 * pixel, 4 * pixel);
   fill(CREMA);
   textAlign(LEFT, CENTER);
-  text("Botellas", x + 8 * pixel, y + 12 * pixel);
-  for (int k = 0; k < BOTELLAS_INICIO; k++) {
-    float bx = x + 62 * pixel + k * 13 * pixel;
-    noStroke();
-    fill(k < yo.botellas ? color(90, 170, 110) : color(90, 80, 74));
-    rect(bx, y + 7 * pixel, 6 * pixel, 12 * pixel, 1.5 * pixel);
-    rect(bx + 1.5 * pixel, y + 4 * pixel, 3 * pixel, 4 * pixel);
-  }
+  text(texto, x + 20 * pixel, y + 12 * pixel);
 }
 
 // "Mantén E para pegar" encima de la cartelera que alcanza el jugador
@@ -2966,7 +3143,7 @@ void dibujarAyuda() {
   textFont(fuente, 9 * pixel);
   String s;
   if (estadoRonda == RONDA && evento == VOLANTES) s = "WASD caminar · Shift correr · E (mantener) pegar · Q botella · M mapa";
-  else if (estadoRonda == RONDA && evento == GENTE) s = "WASD caminar · E convencer · F asegurar (flechas) · Q botella · M mapa";
+  else if (estadoRonda == RONDA && evento == GENTE) s = "WASD caminar · E convencer · F asegurar (conversación) · Q botella · M mapa";
   else if (manejando != null) s = "W acelerar · S frenar · A D girar · E bajarte · M mapa";
   else if (estadoRonda == RONDA) s = "WASD caminar · Shift correr · F reclamar live" + (puedeManejar() ? " · E subirte a un carro" : "") + " · Q botella · M mapa";
   else s = "WASD caminar · Shift correr · E subirte a un carro · M mapa" + (modoPrueba ? " · C choques" : "");
@@ -3350,11 +3527,14 @@ void actualizarRonda(float dt) {
     if (relojRonda <= 0) terminarRonda();
     break;
   case FINAL:
-    for (Candidato c : candidatos) c.moviendose = false;
+    for (Candidato c : candidatos) {
+      if (c.bot != null) c.bot.pasear(dt);   // los bots siguen caminando
+      else c.moviendose = false;
+    }
     break;
   case VUELTA:
     moverHumanos(dt);
-    for (Candidato c : candidatos) if (c.bot != null) c.moviendose = false;
+    for (Candidato c : candidatos) if (c.bot != null) c.bot.pasear(dt);
     if (dist(yo.x, yo.y, yo.inicioX, yo.inicioY) < 1.8) {
       if (manejando != null) bajarseDelCarro();
       sonar("puerta");
@@ -3386,7 +3566,7 @@ void empezarRonda() {
     }
   }
   if (evento == VOLANTES) avisarTodos("¡A pegar volantes! Mantén E junto a una cartelera");
-  else if (evento == GENTE) avisarTodos("¡A convencer! E para rápido, F para asegurar con flechas");
+  else if (evento == GENTE) avisarTodos("¡A convencer! E para rápido, F para asegurar conversando");
   else avisarTodos("¡Hay lives por toda la ciudad! Llega a uno y reclámalo con F");
 }
 

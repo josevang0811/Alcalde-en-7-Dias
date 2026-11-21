@@ -76,6 +76,7 @@ void dibujarHud() {
     dibujarReloj();
     dibujarLista();
     dibujarBotellasHud();
+    dibujarMiraBotella();
     if (evento == VOLANTES) {
       dibujarAyudaPegar();
     } else {
@@ -223,20 +224,20 @@ void dibujarLista() {
   }
 }
 
+// Las botellas no se acaban: el recuadro solo recuerda la tecla
 void dibujarBotellasHud() {
   float x = 10 * pixel, y = height - 52 * pixel;
-  caja(x, y, 108 * pixel, 24 * pixel, 210);
   textFont(fuenteNegrita, 9 * pixel);
+  String texto = "Botellas ilimitadas · Q o clic: al cursor";
+  float w = textWidth(texto) + 34 * pixel;
+  caja(x, y, w, 24 * pixel, 210);
+  noStroke();
+  fill(90, 170, 110);
+  rect(x + 8 * pixel, y + 7 * pixel, 6 * pixel, 12 * pixel, 1.5 * pixel);
+  rect(x + 9.5 * pixel, y + 4 * pixel, 3 * pixel, 4 * pixel);
   fill(CREMA);
   textAlign(LEFT, CENTER);
-  text("Botellas", x + 8 * pixel, y + 12 * pixel);
-  for (int k = 0; k < BOTELLAS_INICIO; k++) {
-    float bx = x + 62 * pixel + k * 13 * pixel;
-    noStroke();
-    fill(k < yo.botellas ? color(90, 170, 110) : color(90, 80, 74));
-    rect(bx, y + 7 * pixel, 6 * pixel, 12 * pixel, 1.5 * pixel);
-    rect(bx + 1.5 * pixel, y + 4 * pixel, 3 * pixel, 4 * pixel);
-  }
+  text(texto, x + 20 * pixel, y + 12 * pixel);
 }
 
 // "Mantén E para pegar" encima de la cartelera que alcanza el jugador
@@ -367,7 +368,7 @@ void dibujarAyuda() {
   textFont(fuente, 9 * pixel);
   String s;
   if (estadoRonda == RONDA && evento == VOLANTES) s = "WASD caminar · Shift correr · E (mantener) pegar · Q botella · M mapa";
-  else if (estadoRonda == RONDA && evento == GENTE) s = "WASD caminar · E convencer · F asegurar (flechas) · Q botella · M mapa";
+  else if (estadoRonda == RONDA && evento == GENTE) s = "WASD caminar · E convencer · F asegurar (conversación) · Q botella · M mapa";
   else if (manejando != null) s = "W acelerar · S frenar · A D girar · E bajarte · M mapa";
   else if (estadoRonda == RONDA) s = "WASD caminar · Shift correr · F reclamar live" + (puedeManejar() ? " · E subirte a un carro" : "") + " · Q botella · M mapa";
   else s = "WASD caminar · Shift correr · E subirte a un carro · M mapa" + (modoPrueba ? " · C choques" : "");

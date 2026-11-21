@@ -46,15 +46,6 @@ void configurarEventoRed(int tipo, int modo, int asiento, boolean[] humanos, Str
   configurarEvento(tipo);
 }
 
-boolean esLocal(Candidato c) {
-  return c == yo;
-}
-
-// Persona (no bot): el jugador de este PC o el de otro
-boolean esHumano(Candidato c) {
-  return c.bot == null;
-}
-
 String nombreVisible(Candidato c) {
   return c == yo ? "Tú" : c.nombre;
 }

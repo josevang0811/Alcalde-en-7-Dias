@@ -58,13 +58,18 @@ void lineaPixel(String texto, float x, float y, float celda) {
     PImage img = textoBlanco(texto);
     boolean conTinte = g.tint;
     int tinte = g.tintColor;
-    tint(g.fillColor);
+    // el color del fill, multiplicado por el tint que ya hubiera (un fundido)
+    tint(conTinte ? multiplicarColor(g.fillColor, tinte) : g.fillColor);
     image(img, x0 - MARGEN_PIXEL * celda, y0 - (MARGEN_PIXEL + 2) * celda, img.width * celda, img.height * celda);
     if (conTinte) {
         tint(tinte);
     } else {
         noTint();
     }
+}
+
+color multiplicarColor(color a, color b) {
+    return color(red(a) * red(b) / 255, green(a) * green(b) / 255, blue(a) * blue(b) / 255, alpha(a) * alpha(b) / 255);
 }
 
 @Override

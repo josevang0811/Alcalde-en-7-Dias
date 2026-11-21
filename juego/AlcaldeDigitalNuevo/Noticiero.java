@@ -26,12 +26,24 @@ public class Noticiero {
     }
 
     // Saca la noticia de arriba del mazo. Si ya se contaron todas, se vuelve
-    // a armar y barajar el mazo completo.
+    // a armar y barajar el mazo completo. El mazo es una pila: la de arriba
+    // es la ultima de la lista, asi sacarla no corre las demas.
     public Noticia siguiente() {
         if (mazo.isEmpty()) {
             barajar();
         }
-        return mazo.remove(0);
+        return mazo.remove(mazo.size() - 1);
+    }
+
+    // Todas las noticias del banco, sin barajar ni sacar ninguna (para grabar
+    // la voz de la periodista antes de jugar, en MisionCampana.pde).
+    public ArrayList<Noticia> todas() {
+        ArrayList<Noticia> guardado = mazo;
+        mazo = new ArrayList<Noticia>();
+        agregarNoticias();
+        ArrayList<Noticia> lista = mazo;
+        mazo = guardado;
+        return lista;
     }
 
     private void barajar() {
