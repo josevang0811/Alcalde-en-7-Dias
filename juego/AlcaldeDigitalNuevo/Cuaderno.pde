@@ -151,9 +151,6 @@ void pantallaArbol() {
     if (avisoActivo()) {
         dibujarAviso();
     }
-    if (partidaTerminada()) {
-        dibujarFinDePartida();
-    }
 }
 
 // ===========================================================================
@@ -464,19 +461,8 @@ String textoEstadoHabilidad(Nodo n) {
 // CLICS
 // ===========================================================================
 
-// Un clic en una habilidad la elige; un clic en el costo la compra. Si la
-// partida terminó, solo responden los botones de la tarjeta final.
+// Un clic en una habilidad la elige; un clic en el costo la compra.
 void clicEnCuaderno() {
-    if (partidaTerminada()) {
-        if (botonNuevaPartida.contiene(mouseX, mouseY)) {
-            // la campaña terminó: se deja lista una nueva y se vuelve al
-            // menú principal (no se sigue jugando la terminada)
-            cerrarRed();
-            reiniciarPartida();
-            volverAlMenu();
-        }
-        return;
-    }
     if (botonVolverMenu.contiene(mouseX, mouseY)) {
         irA(MENU);
     } else if (!mouseSobreLibro() && !mouseEnCosto()) {

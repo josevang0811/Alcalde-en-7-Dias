@@ -232,7 +232,7 @@ float desplazamientoSombra() {
 }
 
 // Una hoja de papel con su sombra y contorno negro: es la base de la ficha
-// lateral, la tarjeta final, el manual y las etiquetas.
+// lateral, el manual y las etiquetas.
 void dibujarPapel(float x, float y, float ancho, float alto, float radio, color relleno) {
     float d = desplazamientoSombra();
     noStroke();
@@ -674,18 +674,11 @@ void dibujarSalida() {
 }
 
 // ===========================================================================
-// 4. LA BARRA DE ARRIBA Y EL FIN DE LA PARTIDA
+// 4. LA BARRA DE ARRIBA
 // ===========================================================================
 
-// La pantalla del arbol esta en Cuaderno.pde. Aqui quedan la barra de
-// arriba, que comparten varias pantallas, y la tarjeta de fin de partida.
-
-String[] PERFILES_RAMA = {"Comunicador", "Candidato confiable", "Candidato de la IA"};
-String[] DESCRIPCIONES_PERFIL = {
-    "Tu mensaje llega a todos los rincones de Ciudad Nova.",
-    "La gente cree en lo que publicas: tu palabra vale oro.",
-    "Ganaste terreno con noticias inventadas: funciona, pero la ciudad se cree cualquier cosa."
-};
+// La pantalla del arbol esta en Cuaderno.pde. Aqui queda la barra de
+// arriba, que comparten varias pantallas.
 
 // --- El texto flotante de los puntos ---
 
@@ -705,160 +698,6 @@ void dibujarTextoFlotante() {
     textAlign(CENTER, CENTER);
     textoConContorno(textoFlotante, xFlotante, yFlotante + altoBarra * 0.35 - subida, max(1.5, 2 * escala),
         colorFlotante, COLOR_CONTORNO, opacidad);
-}
-
-// --- Progreso por rama (lo usa la tarjeta final) ---
-
-float filaPanel() {
-    return tx(25, 19);
-}
-
-float altoProgreso() {
-    return filaPanel() * 6.5;
-}
-
-// Una barra por rama: cuantas de sus habilidades estan desbloqueadas contra
-// cuantas tiene (peso del subarbol). Se usa en la tarjeta final.
-void dibujarProgreso(float x, float y, float ancho) {
-    float fila = filaPanel();
-    fill(COLOR_TEXTO);
-    usarLetra(LETRA_NEGRITA, tx(16, 12));
-    textAlign(LEFT, TOP);
-    text("Progreso de la campaña", x, y);
-    y += fila * 1.1;
-
-    ArrayList<Nodo> ramas = arbol.getRaiz().getHijos();
-    for (int i = 0; i < ramas.size(); i++) {
-        Nodo rama = ramas.get(i);
-        int hechas = arbol.contarDesbloqueadasEn(rama);
-        int total = arbol.peso(rama);
-        fill(COLOR_TEXTO);
-        usarLetra(LETRA_TEXTO, tx(14, 11));
-        textAlign(LEFT, TOP);
-        text(NOMBRES_RAMA[i], x, y);
-        textAlign(RIGHT, TOP);
-        text(hechas + " / " + total, x + ancho, y);
-
-        float yBarra = y + fila * 0.8;
-        float alto = fila * 0.34;
-        noStroke();
-        fill(COLOR_BLOQUEADA);
-        rect(x, yBarra, ancho, alto, alto / 2);
-        if (hechas > 0) {
-            fill(COLORES_RAMA_FUERTE[i]);
-            rect(x, yBarra, ancho * hechas / total, alto, alto / 2);
-        }
-        y += fila * 1.5;
-    }
-
-    int total = arbol.peso(arbol.getRaiz()) - 1;
-    int hechas = arbol.contarDesbloqueadas() - 1;
-    fill(COLOR_TEXTO_SUAVE);
-    usarLetra(LETRA_TEXTO, tx(14, 11));
-    textAlign(LEFT, TOP);
-    text("Habilidades desbloqueadas: " + hechas + " de " + total, x, y + fila * 0.1);
-}
-
-// --- Fin de la partida ---
-
-// Tarjeta final: un velo oscuro tapa el cuaderno (y deja de pedir la mano
-// para lo que quedo debajo) y encima va el resumen de la campana.
-void dibujarFinDePartida() {
-    quiereMano = false;
-    noStroke();
-    fill(COLOR_VELO);
-    rect(0, 0, width, height);
-    float radio = max(8, 14 * escala);
-    dibujarPapel(tarjetaX, tarjetaY, tarjetaAncho, tarjetaAlto, radio, COLOR_PAPEL);
-    dibujarCinta(tarjetaX + tarjetaAncho / 2, tarjetaY, tarjetaAncho * 0.26, max(16, 26 * escala), 0.03);
-
-    float cx = tarjetaX + tarjetaAncho / 2;
-    float margen = tarjetaAncho * 0.1;
-    float ancho = tarjetaAncho - margen * 2;
-    float y = tarjetaY + margenTarjeta();
-
-    fill(COLOR_ROJO);
-    String titulo = arbolCompleto() ? "¡ÁRBOL COMPLETO!" : "FIN DE LA CAMPAÑA";
-    ajustarLetra(LETRA_TITULO, titulo, ancho, tx(52, 32));
-    textAlign(CENTER, TOP);
-    text(titulo, cx, y);
-    y += tx(52, 32) * 1.25;
-
-    int turnos = turnoVisible();
-    int hechas = arbol.contarDesbloqueadas() - 1;
-    int total = arbol.peso(arbol.getRaiz()) - 1;
-    fill(COLOR_TEXTO);
-    usarLetra(LETRA_TEXTO, tx(17, 13));
-    y += dibujarParrafo("Jugaste " + (turnos == 1 ? "1 turno" : turnos + " turnos") + ", conquistaste " + partida.contarBarriosPropios() + " de " +
-        partida.getCiudad().cantidad() + " barrios y desbloqueaste " + hechas + " de " + total + " habilidades.", cx, y, ancho);
-    y += tx(14, 10);
-
-    y = dibujarPerfil(cx, y, ancho);
-    y += tx(14, 10);
-    dibujarProgreso(tarjetaX + margen, y, ancho);
-    y += altoProgreso() + tx(8, 6);
-
-    // Tu huella digital: lo que dejaste en Civitas (Impacto.pde)
-    fill(COLOR_ROJO);
-    usarLetra(LETRA_NEGRITA, tx(15, 12));
-    textAlign(CENTER, TOP);
-    text("TU HUELLA DIGITAL", cx, y);
-    y += tx(15, 12) * 1.5;
-    fill(COLOR_TEXTO);
-    usarLetra(LETRA_TEXTO, tx(14, 11));
-    y += dibujarParrafo("Te vieron " + miles(partida.getAlcanceTotal()) + " personas · credibilidad final " + partida.getCredibilidad() +
-        " · " + partida.getAciertos() + " jugadas acertadas · " + partida.getBulosCompartidos() + " bulos compartidos · " +
-        partida.getOdioAmplificado() + " mensajes de odio amplificados · " + partida.getUsosIA() + " noticias inventadas con IA.", cx, y, ancho);
-    fill(COLOR_TEXTO_SUAVE);
-    dibujarParrafo(partida.getBulosCompartidos() + partida.getOdioAmplificado() + partida.getUsosIA() == 0
-        ? "No regaste bulos ni odio: así se gana confianza en la red." : "Lo que se publica no se borra del todo: cada bulo llegó a gente real.", cx, y, ancho);
-
-    botonNuevaPartida.dibujar();   // "Menú principal": la campaña no sigue
-}
-
-// El estilo de campana sale de la rama con mas habilidades desbloqueadas.
-// Si hay empate entre las mas altas, el candidato es "equilibrado".
-float dibujarPerfil(float cx, float y, float ancho) {
-    ArrayList<Nodo> ramas = arbol.getRaiz().getHijos();
-    int mejor = -1;
-    int maximo = 0;
-    boolean empate = false;
-    for (int i = 0; i < ramas.size(); i++) {
-        int hechas = arbol.contarDesbloqueadasEn(ramas.get(i));
-        if (hechas > maximo) {
-            maximo = hechas;
-            mejor = i;
-            empate = false;
-        } else if (hechas == maximo && maximo > 0) {
-            empate = true;
-        }
-    }
-    String perfil;
-    String descripcion;
-    if (mejor < 0) {
-        perfil = "Campaña en pausa";
-        descripcion = "No desbloqueaste habilidades: cada punto sin usar es una oportunidad perdida.";
-    } else if (empate) {
-        perfil = "Candidato equilibrado";
-        descripcion = "Repartiste tu influencia entre varias ramas sin especializarte en una.";
-    } else {
-        perfil = PERFILES_RAMA[mejor];
-        descripcion = DESCRIPCIONES_PERFIL[mejor];
-    }
-
-    fill(COLOR_TEXTO_SUAVE);
-    usarLetra(LETRA_NEGRITA, tx(14, 11));
-    textAlign(CENTER, TOP);
-    text("TU ESTILO DE CAMPAÑA", cx, y);
-    y += tx(14, 11) * 1.5;
-    fill(COLOR_TINTA);
-    ajustarLetra(LETRA_MANO, perfil, ancho, tx(30, 20));
-    text(perfil, cx, y);
-    y += tx(30, 20) * 1.5;
-    fill(COLOR_TEXTO);
-    usarLetra(LETRA_TEXTO, tx(15, 12));
-    y += dibujarParrafo(descripcion, cx, y, ancho);
-    return y;
 }
 
 // ===========================================================================

@@ -68,7 +68,6 @@ color COLOR_BOTON_TEXTO = #1A1A1A;
 
 color COLOR_TARJETA = #CDEFF8;  // tarjetas del celular, sobre la pantalla azul
 
-color COLOR_BLOQUEADA = #E8E8E8;
 
 // Colores con transparencia: el cuarto numero es la opacidad (0 a 255).
 color COLOR_SOMBRA = color(0, 0, 0, 55);
@@ -126,8 +125,6 @@ float origenEscenaX, origenEscenaY;
 float altoBarra;
 float margenHoja;
 
-// Tarjeta de fin de partida
-float tarjetaX, tarjetaY, tarjetaAncho, tarjetaAlto;
 
 // Manual de ayuda
 float ayudaX, ayudaY, ayudaAncho, ayudaAlto;
@@ -146,7 +143,6 @@ Boton botonVolverMenu;
 Boton botonVolverAyuda;
 Boton botonVolverCelular;
 Boton botonCuadernoCelular;
-Boton botonNuevaPartida;
 
 // Los objetos de la oficina con los que se puede interactuar. Se guardan por
 // separado (para saber que hacer con cada clic) y tambien en una lista (para
@@ -265,23 +261,8 @@ void calcularLayoutOficina() {
     origenEscenaY = camY;
 }
 
-// La tarjeta de fin de partida y el manual de ayuda son hojas de papel
-// centradas sobre el escritorio.
+// El manual de ayuda es una hoja de papel centrada sobre el escritorio.
 void calcularLayoutTarjetas() {
-    // La tarjeta final mide lo que ocupa su contenido (titulo, resumen,
-    // estilo de campana, barras de progreso, mensaje y botones), para que
-    // no quede un hueco vacio entre el texto y los botones.
-    float altoContenido = tx(52, 32) * 1.25
-        + tx(17, 13) * 2.1 + tx(14, 10)
-        + tx(14, 11) * 1.5 + tx(30, 20) * 1.5 + tx(15, 12) * 2.1 + tx(14, 10)
-        + altoProgreso() + tx(8, 6)
-        + tx(15, 12) * 1.5
-        + tx(14, 11) * 1.3 * 5;   // el párrafo de la huella digital (Interfaz.pde)
-    tarjetaAncho = min(width * 0.56, 780 * escala);
-    tarjetaAlto = min(height * 0.92, margenTarjeta() * 2 + altoContenido + altoBotonTarjeta() * 1.5);
-    tarjetaX = (width - tarjetaAncho) / 2;
-    tarjetaY = (height - tarjetaAlto) / 2;
-
     ayudaAncho = width * 0.9;
     ayudaX = (width - ayudaAncho) / 2;
     ayudaY = altoBarra + margenHoja * 0.6;
@@ -324,19 +305,6 @@ void crearBotones() {
     float anchoDerecho = constrain(width * 0.13, 160, 250);
     botonCuadernoCelular = new Boton(width - anchoDerecho - width * 0.015, yBoton,
         anchoDerecho, altoBoton, "Ir al cuaderno →");
-
-    float yTarjetaBoton = tarjetaY + tarjetaAlto - altoBotonTarjeta() - margenTarjeta();
-    // al terminar la campaña solo queda volver al menú principal
-    botonNuevaPartida = new Boton(tarjetaX + tarjetaAncho * 0.25, yTarjetaBoton,
-        tarjetaAncho * 0.5, altoBotonTarjeta(), "Menú principal");
-}
-
-float margenTarjeta() {
-    return tx(34, 22);
-}
-
-float altoBotonTarjeta() {
-    return constrain(height * 0.065, 38, 64);
 }
 
 // Cada objeto recibe su caja de clic en coordenadas del lienzo de la
@@ -396,6 +364,12 @@ void draw() {
         dibujarCreditos();
         return;
     }
+    // La misión de los reels del último día (MisionReels.pde)
+    if (reelsActivos) {
+        actualizarMusicaJuego();
+        dibujarMisionReels();
+        return;
+    }
     // Si a esta ronda le tocó la mision, mientras dura es lo unico que se ve.
     if (estado == MISION) {
         mision.dibujar();
@@ -403,6 +377,7 @@ void draw() {
     }
     // Los minijuegos del mundo abierto (EventoParque.pde, Minijuegos.pde)
     if (estado == EVENTO) {
+        actualizarMusicaEvento();   // Opciones.pde
         mundo.dibujar();
         dibujarFeedEvento();   // Civitas en vivo (Impacto.pde)
         mandarFotoEvento();
@@ -450,6 +425,10 @@ void mousePressed() {
         clicCreditos();
         return;
     }
+    if (reelsActivos) {
+        clicReels();   // MisionReels.pde
+        return;
+    }
     if (transicionDiaActiva() || autodestruyendo()) {
         return;   // la pantalla negra entre un día y otro, o el celular quemándose
     }
@@ -480,6 +459,7 @@ void mousePressed() {
     }
     if (hayVotaciones()) {
         votacionesCerradas = true;
+        volverAlMenuPrincipal();   // Creditos.pde
         return;
     }
     if (esperandoTurno) {
@@ -602,8 +582,7 @@ void intentarDesbloquear(Nodo n) {
 }
 
 // Al pasar turno se vuelve a la oficina: cada turno empieza ahi, con el
-// telefono sonando. Si la campana termino, se queda en el cuaderno, donde
-// aparece la tarjeta final.
+// telefono sonando. Si la campana termino, salen los creditos.
 void pasarTurno() {
     // En red el turno avanza cuando todos los candidatos están listos
     if (esperarTurnoRed()) {
@@ -626,7 +605,7 @@ void pasarTurno() {
         }
         String mensaje = inicio + "Turno " + partida.getTurno() + " de " + Partida.TURNOS_TOTALES + ": recibiste " +
             partida.getPuntosUltimoTurno() + " puntos para el árbol.";
-        if (transicionDiaActiva()) {
+        if (transicionDiaActiva() || cinematicaActiva()) {
             avisoTrasTransicion = mensaje;   // se muestra al quitarse la pantalla negra (Ronda.pde)
         } else {
             avisar(mensaje);
@@ -654,6 +633,8 @@ boolean arbolCompleto() {
 void reiniciarPartida() {
     reiniciarRonda();
     turnoDelEncargo = -1;   // en la campaña nueva el encargo vuelve a sonar desde el día 1
+    reiniciarMisionReels(); // MisionReels.pde
+    reiniciarHistorias();   // Historias.pde
     creditosActivos = false;
     reiniciarMisionCampana();
     reiniciarEventosCampana();
@@ -720,6 +701,10 @@ void keyPressed() {
         }
         return;
     }
+    if (reelsActivos) {
+        teclaReels();   // MisionReels.pde
+        return;
+    }
     if (creditosActivos) {
         teclaCreditos();
         if (key == ESC) {
@@ -768,6 +753,8 @@ void keyPressed() {
         if (nodoSeleccionado != null && sePuedeComprar(nodoSeleccionado)) {
             intentarDesbloquear(nodoSeleccionado);
         }
+    } else if (key >= '1' && key <= '7' && estado != CELULAR && !enMenu) {
+        irAlDia(key - '0');   // atajo de prueba: ir a ese día (Ronda.pde)
     } else if (key == ENTER || key == RETURN || key == ' ') {
         teclaContestar();
     } else if (key == 'P' || key == 'p') {

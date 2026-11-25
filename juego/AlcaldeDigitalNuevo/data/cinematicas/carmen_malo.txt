@@ -1,0 +1,31 @@
+# Final malo de la historia 2 (compartió el video, calló o usó la IA)
+
+lienzo 480 270
+
+plano 5000
+ajustar carmen/ventana_cerrada.png
+camara 237 112 2.8 237 112 2.5
+ambiente cinematicas/sonidos/noche.wav
+fundido 600 300
+
+plano 7800
+ajustar carmen/cocina_oscura.png
+camara 270 150 1.3 290 160 1.9
+luz 290 160 22 #4f8dff 0.35
+globo 220 100 600 47 NOTIFICACIONES
+globo 230 116 1800 @ANONIMO: ABUELA BOBA
+globo 224 132 3000 YA LA VI EN TODOS LOS GRUPOS
+destello 600
+destello 1800
+destello 3000
+sonido 600 sfx/aviso.wav
+sonido 1800 sfx/aviso.wav
+sonido 3000 sfx/aviso.wav
+subtitulo 4400 Carmen|Mejor no le cuento a nadie.
+fundido 300 600
+
+plano 4500
+fondo #000000
+ambiente nada
+rotulo {cierre}
+fundido 400 600

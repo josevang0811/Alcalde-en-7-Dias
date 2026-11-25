@@ -19,6 +19,12 @@ float mapaX, mapaY, mapaAncho, mapaAlto;
 // minutos, se ve en el mapa de papel del celular. Un clic o Esc alejan la
 // camara y se vuelve a la oficina.
 void pantallaMapa() {
+    // la cortina del noticiero suena mientras la TV está abierta (Televisor.pde)
+    if (zoomTVHasta == 1 && !videollamadaActiva) {
+        empezarMusicaNoticiero();
+    } else {
+        pararMusicaNoticiero();
+    }
     dibujarZoomTV(zoomTV);
     if (zoomTVHasta == 0 && zoomTV <= 0.001) {
         irA(MENU);

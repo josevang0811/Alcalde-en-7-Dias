@@ -34,7 +34,7 @@ javax.sound.sampled.Clip clipMusicaEncargo, clipAutodestruccion;
 ArrayList<float[]> particulasEncargo = new ArrayList<float[]>();
 
 boolean llamadaDeEncargo() {
-    return !llamadaDeValeria() && !esRondaEspecial() && !modoApoyo() && !partidaTerminada();
+    return !llamadaDeValeria() && !esRondaEspecial() && !modoApoyo() && !partidaTerminada() && !esDiaReels();
 }
 
 // Lo que dice Marta en el encargo
@@ -194,6 +194,9 @@ boolean encargoTerminado() {
 
 void autodestruir() {
     encargoCorriendo = false;
+    if (!partida.yaPublicoEsteTurno()) {
+        registrarResultadoHistoria(Influencer.NEUTRA);   // no decidir cuenta como callar (Historias.pde)
+    }
     telefonoHumeando = true;
     pararMusicaEncargo();
     if (estado != CELULAR) {
@@ -430,7 +433,7 @@ boolean puedeTerminarDia() {
     return !partidaTerminada() && faseLlamada == LLAMADA_ATENDIDA && !encargoCorriendo && !autodestruyendo()
         && !esperandoTurno && !transicionDiaActiva() && !llamadaEnPantalla() && !informeVisible()
         && !enMenu && !mostrarPortada && estado == MENU
-        && (partida.yaPublicoEsteTurno() || encargoTerminado() || esRondaEspecial());
+        && !reelsActivos && (partida.yaPublicoEsteTurno() || encargoTerminado() || esRondaEspecial() || reelsHechosHoy());
 }
 
 float[] cajaBotonTerminarDia() {

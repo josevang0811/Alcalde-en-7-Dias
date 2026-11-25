@@ -1,0 +1,82 @@
+# Historia 1: El audio. Presentación (unos 39 s), antes de que suene el
+# teléfono del día 1. Bocetos de 480x270 en data/cinematicas/efrain/ (salen de
+# Processing/herramientas_historias/hacer_escenas.py). Las órdenes están explicadas al
+# principio de Cinematica.pde.
+
+lienzo 480 270
+
+# 1. Rótulo
+plano 2500
+fondo #000000
+rotulo EL MERCADO · 6:40 A. M.
+ambiente cinematicas/sonidos/mercado.wav
+fundido 400 300
+
+# 2. La tienda al amanecer: Efraín sube la reja
+plano 4000
+ajustar efrain/mercado_amanecer.png
+camara 240 135 1.0 300 160 1.5
+sonido 300 cinematicas/sonidos/reja.wav
+fundido 500 150
+
+# 3. El mostrador: el bombón de regalo
+plano 5000
+ajustar efrain/tienda_mostrador.png
+camara 240 140 1.1 280 120 1.4
+subtitulo 600 Don Efraín|¡Ese va por la casa! Y saluden a su mamá.
+fundido 150 150
+
+# 4. Sara llega tarde al colegio
+plano 7000
+ajustar efrain/efrain_sara.png
+camara 250 165 1.25 250 160 1.5
+subtitulo 300 Sara|¡Abuelo, ya cerraron la puerta del colegio!
+subtitulo 3800 Don Efraín|Entonces hoy te llevo yo.
+fundido 150 150
+
+# 5. El video: 7 segundos desde la otra acera, sin contexto. Se ve a través
+# de la cámara del celular: la interfaz (hud_grabando.png) y el contador, que
+# cambia cada 0,7 s (hud_rec_0..7.png; cada uno tapa al anterior). La cámara
+# queda quieta para que la interfaz no se agrande.
+plano 5800
+ajustar efrain/furgon_grabacion.png
+ajustar efrain/hud_grabando.png
+capa efrain/hud_rec_0.png 0 0 0
+capa efrain/hud_rec_1.png 0 0 700
+capa efrain/hud_rec_2.png 0 0 1400
+capa efrain/hud_rec_3.png 0 0 2100
+capa efrain/hud_rec_4.png 0 0 2800
+capa efrain/hud_rec_5.png 0 0 3500
+capa efrain/hud_rec_6.png 0 0 4200
+capa efrain/hud_rec_7.png 0 0 4900
+sacudida 200 1.0
+sacudida 2600 0.8
+fundido 100 100
+
+# 6. El chat del barrio: los reenvíos. Cada pantalla se queda 3 s para que
+# se alcance a leer lo que dicen los vecinos.
+plano 12500
+fondo #0a0d16
+deslizar efrain/chat_barrio.png 167 109 0.25 61 3000 450
+deslizar efrain/chat_barra.png 167 100 0.25 9 100000 1
+ajustar prologo/celular_marco.png
+camara 240 134 2.0 240 136 2.2
+destello 3000
+destello 6000
+destello 9000
+sacudida 3000 0.5
+sacudida 6000 0.5
+sacudida 9000 0.5
+sonido 3000 sfx/aviso.wav
+sonido 6000 sfx/aviso.wav
+sonido 9000 sfx/aviso.wav
+ambiente cinematicas/sonidos/angustia.wav
+fundido 150 300
+
+# 7. El audio reenviado, en negro (la voz se graba con Azure: Historias.pde)
+plano 6400
+fondo #000000
+ambiente nada
+sonido 300 voz:nota
+subtitulo 300 Audio reenviado|Dicen que el de la tienda se lleva a los niños en un furgón. Pásela.
+fundido 0 600

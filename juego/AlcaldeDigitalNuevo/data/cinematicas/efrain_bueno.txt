@@ -1,0 +1,32 @@
+# Historia 1: El audio. Final bueno (unos 16 s): desmintió o fue con cautela.
+# Dos planos: la ciudad se entera de que el video estaba sacado de contexto y
+# Sara pega su dibujo en la reja. {cierre} lo cambia el juego por el rótulo
+# que corresponde (Historias.pde).
+
+lienzo 480 270
+
+# 1. La tienda al atardecer: el desmentido llega al celular de una vecina
+plano 6000
+ajustar efrain/tienda_atardecer.png
+camara 240 140 1.1 230 150 1.5
+globo 150 112 900 @DIARIO_NOVA: EL VIDEO DE LA TIENDA ESTÁ SACADO DE CONTEXTO
+globo 162 128 2600 LA NIÑA ES SU NIETA. LA LLEVABA AL COLEGIO
+destello 900
+destello 2600
+sonido 900 sfx/aviso.wav
+sonido 2600 sfx/aviso.wav
+ambiente cinematicas/sonidos/atardecer.wav
+fundido 600 200
+
+# 2. Sara pega su dibujo en la reja
+plano 5500
+ajustar efrain/sara_dibujo.png
+camara 240 140 1.0 255 150 1.4
+fundido 200 500
+
+# 3. El rótulo
+plano 4500
+fondo #000000
+ambiente nada
+rotulo {cierre}
+fundido 400 600

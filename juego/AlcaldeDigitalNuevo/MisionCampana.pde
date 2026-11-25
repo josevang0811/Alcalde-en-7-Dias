@@ -55,6 +55,7 @@ void prepararInfiltrado() {
     }
     precargarVozPeriodista(frases.toArray(new String[0]));
     precargarBienvenida();
+    precargarVozHistorias();   // Historias.pde
     if (mision.musica != null) {
         // la canción de calma suena en todo el juego (oficina, mundo abierto);
         // en la misión cambia según lo que pase, como siempre

@@ -51,7 +51,7 @@ boolean cerrarDia() {
     irA(MENU);
     if (partidaTerminada()) {
         empezarCreditos();   // Creditos.pde
-    } else {
+    } else if (!empezarFinalHistoria()) {   // si el día tuvo historia, primero su final (Historias.pde)
         momentoTransicionDia = millis();
     }
     return true;
@@ -113,6 +113,7 @@ void saltarAlFinal() {
     momentoAMision = -1;       // los fundidos hacia la misión o el parque
     momentoAEvento = -1;
     cerrarOpciones();          // Opciones.pde
+    reiniciarMisionReels();    // MisionReels.pde
     enSala = false;
     enMenu = false;
     camaraBajando = false;
@@ -130,4 +131,59 @@ void saltarAlFinal() {
     cambiarFaseLlamada(LLAMADA_NINGUNA);
     diaPorTerminar = true;
     cerrarDia();
+}
+
+// ---------------------------------------------------------------------------
+// Atajo para probar: las teclas 1 a 7 llevan a ese día (adelante o atrás).
+// Se cierra lo que esté abierto, sale la pantalla negra con "DÍA N" y suena
+// el teléfono de ese día. La historia del día, su minijuego y su encargo se
+// pueden volver a jugar. En red no se usa.
+void irAlDia(int dia) {
+    if (partida == null || enRed() || saliendo || camaraBajando || camaraSubiendo || creditosActivos
+        || dia < 1 || dia > Partida.TURNOS_TOTALES) {
+        return;
+    }
+    colaCine.clear();
+    planoCine = null;
+    trasCinematica = "";
+    cambiarAmbienteCine("nada");
+    prologoPendiente = false;
+    bienvenidaPendiente = false;
+    momentoProgramadoBienvenida = -1;
+    if (videollamadaActiva) {
+        terminarBienvenida();
+    }
+    callarVoces();             // MisionCampana.pde
+    if (mision != null) {
+        mision.callarValeria();
+    }
+    pararMusicaEncargo();      // Encargo.pde
+    pararMusicaNoticiero();    // Televisor.pde
+    momentoAMision = -1;
+    momentoAEvento = -1;
+    cerrarOpciones();
+    zoomTV = 0;
+    zoomTVDesde = 0;
+    zoomTVHasta = 0;
+    mostrarPortada = false;
+    campanaEmpezada = true;
+    informeVisto = true;
+    diaPorTerminar = false;
+    avisoFinDia = null;
+    avisoTrasTransicion = null;
+    partida.irAlTurno(dia);
+    // lo de ese día en adelante se vuelve a jugar
+    for (int k = dia; k < finalHistoria.length; k++) {
+        finalHistoria[k] = -1;
+        inicioHistoriaVisto[k] = false;
+    }
+    if (rondaMinijuegoHecha >= dia) {
+        rondaMinijuegoHecha = -1;
+    }
+    turnoDelEncargo = -1;
+    reiniciarMisionReels();    // MisionReels.pde
+    reiniciarCelular();
+    irA(MENU);
+    momentoTransicionDia = millis();
+    prepararLlamadaDelTurno();
 }

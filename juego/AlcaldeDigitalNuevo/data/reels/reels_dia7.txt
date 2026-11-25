@@ -1,0 +1,218 @@
+# Los reels del día 7 (MisionReels.pde). Salen en este orden.
+#
+# Cada reel va entre "reel <id>" y "fin". El lienzo mide 108 x 192 (vertical,
+# como un celular); abajo, desde y = 150, va la barra con la cuenta y el texto,
+# y un poco más arriba pasan los comentarios: lo importante va entre y = 30 y 130.
+#
+#   compartir <si|no>                lo responsable: compartirlo o no
+#   tipo <util|bulo|odio|estafa|privado|peligro>   bulo y odio cuentan en la huella del final
+#   si_acierta <texto>               lo que pasa si decide bien
+#   si_falla <texto>                 lo que pasa si decide mal
+#   autor <cuenta>                   quién lo publicó
+#   texto <texto>                    lo que dice la publicación (abajo)
+#   megusta <número>
+#   fondo <#hex>                     color de la pared o del cielo
+#   imagen <archivo>                 un dibujo que llena todo el reel (los de SpriteCook, en data/reels/)
+#   horizonte <y>                    dónde empieza el piso
+#   piso <imagen>                    baldosa que se repite (32 x 16)
+#   bloque <x> <y> <w> <h> <#hex>    un rectángulo (casas, agua, papel, arena)
+#   objeto <imagen> <x> <y> <escala> (x, y = donde toca el piso)
+#   actor <sprite> <x> <y> <escala> [baila|rie|cae|camina|quieto]   sprite sin el _0.png
+#   letrero <x> <y> <tamaño> <#fondo> <#letra> <texto>
+#   leyenda <texto>                  el texto grande encima del video
+#   contacto <nombre>                reel que es la captura de un chat
+#   mensaje <texto>                  un mensaje de ese chat
+#   comentario <cuenta>|<texto>
+#
+# Son los mismos dibujos del juego. Los 7 que no se comparten son los temas
+# del prototipo ReelsPrueba: ciberacoso, desinformación, sobreexposición,
+# perfiles falsos, retos peligrosos, estafas e imagen editada. Los 5 que sí
+# son información útil y verificada.
+
+reel acoso
+imagen reels/reel_acoso.png
+compartir no
+tipo odio
+si_acierta Bien: era ciberacoso. Samuel llegó hace una semana y no conoce a nadie.
+si_falla Era ciberacoso: 48 mil personas más se rieron de Samuel, y fue por tu cuenta.
+autor @memes_10b
+texto Se pasó con la ropa jajaja
+megusta 2340
+leyenda EL NUEVO SE VISTE COMO MI ABUELO JAJAJA
+comentario @juanpa_10|JAJAJA qué oso
+comentario @sofi.m|no sean así...
+fin
+
+reel parque
+imagen reels/reel_parque.png
+leyenda ABRE EL PARQUE DEL PUERTO
+compartir si
+tipo util
+si_acierta Información oficial y útil: 300 familias fueron al parque el fin de semana.
+si_falla Era de la Alcaldía, con fecha y fotos reales. No le llegó a nadie por ti.
+autor @alcaldia_nova
+texto Abre el Parque del Puerto. Entrada libre.
+megusta 3100
+comentario @mama_de_dani|por fin un parque cerca
+comentario @don_ernesto|¿hasta qué hora abre?
+fin
+
+reel urgente
+compartir no
+tipo bulo
+si_acierta Bien: era una imagen de hace 3 años, de una cuenta creada ayer.
+si_falla Era falso: por tu cuenta, cientos de familias no mandaron a sus hijos al colegio.
+autor @noticias_ya_ya
+texto COMPARTE ANTES DE QUE LO BORREN
+megusta 8900
+fondo #8e1f1f
+letrero 54 40 2 #f2c14e #1a1a1a URGENTE
+letrero 54 76 1 #ffffff #1a1a1a EL LUNES CIERRAN
+letrero 54 92 1 #ffffff #1a1a1a TODOS LOS COLEGIOS
+letrero 54 116 0.5 #8e1f1f #ffffff SECRETARÍA DE EDUCACIÓN (?)
+comentario @don_ernesto|ya lo mandé a todos mis grupos
+comentario @profe_ana|¿de dónde salió esto?
+fin
+
+reel agua
+compartir si
+tipo util
+si_acierta Aviso oficial con fecha y fuente: el Barrio Sur guardó agua a tiempo.
+si_falla Era el aviso de la empresa de agua. Muchos se enteraron tarde.
+autor @aguas_de_nova
+texto Corte programado por mantenimiento
+megusta 1400
+fondo #6d7a8a
+bloque 14 30 80 104 #f4f0e4
+bloque 14 30 80 14 #2a4a8a
+letrero 54 37 0.9 #2a4a8a #ffffff AGUAS DE NOVA
+letrero 54 58 1.2 #f4f0e4 #1a1a1a AVISO
+letrero 54 76 0.8 #f4f0e4 #1a1a1a CORTE DE AGUA
+letrero 54 90 0.8 #f4f0e4 #1a1a1a JUEVES 8 AM A 4 PM
+letrero 54 104 0.8 #f4f0e4 #1a1a1a BARRIO SUR
+bloque 66 112 20 18 #b83a3a
+letrero 76 121 0.5 #b83a3a #ffffff SELLO
+comentario @vecina_del_sur|gracias por avisar
+comentario @don_ernesto|a llenar baldes
+fin
+
+reel tiburon
+imagen reels/reel_tiburon.png
+compartir no
+tipo bulo
+si_acierta Bien: la foto era un montaje. Quien la compartió asustó a medio barrio.
+si_falla La foto estaba editada. Le llegó a 12 mil personas y nadie fue al río en una semana.
+autor @alerta_costa_24h
+texto NO SE BAÑEN. COMPARTE ANTES DE QUE LO BORREN
+megusta 18400
+leyenda ¡TIBURÓN EN EL RÍO! NO SE BAÑEN
+comentario @luchito.p|eso es photoshop jaja
+comentario @valen.tt|ya lo mandé al grupo de la familia
+comentario @profe_ana|¿de qué fecha es?
+fin
+
+reel playa
+imagen reels/reel_playa.png
+leyenda 200 VECINOS LIMPIARON LA PLAYA
+compartir si
+tipo util
+si_acierta Real y sin dañar a nadie: el sábado siguiente fueron el doble de vecinos.
+si_falla Era una jornada real de los vecinos. Una buena noticia que casi nadie vio.
+autor @vecinos_del_puerto
+texto 200 vecinos limpiaron la playa esta mañana
+megusta 2700
+comentario @profe_ana|¡qué orgullo!
+comentario @valen.tt|el próximo sábado voy
+fin
+
+reel sofi
+imagen reels/reel_sofi.png
+compartir no
+tipo privado
+si_acierta Bien: el video mostraba su casa, su colegio, la placa y la hora en que sale.
+si_falla Ahora 48 mil desconocidos saben dónde vive Sofi, dónde estudia y a qué hora sale.
+autor @mama_de_sofi
+texto Primer día de mi niña. Compártanlo para que la feliciten
+megusta 640
+leyenda ¡PRIMER DÍA! SALE TODOS LOS DÍAS A LAS 6:30
+fin
+
+reel alerta
+imagen reels/reel_alerta.png
+leyenda ALERTA: ESTAFA "MIJO, NECESITO PLATA"
+compartir si
+tipo util
+si_acierta Alerta oficial: esa semana ningún abuelo de tus seguidores cayó en la estafa.
+si_falla Era la alerta de la Policía. La estafa siguió llegando a los abuelos.
+autor @policia_nova
+texto Antes de mandar plata, llama al número de siempre
+megusta 4200
+comentario @hija_de_carmen|a mi mamá le pasó
+comentario @don_ernesto|lo comparto en el grupo
+fin
+
+reel reto
+imagen reels/reel_reto.png
+compartir no
+tipo peligro
+si_acierta Bien: el canal tiene menos de un metro. Dos jóvenes ya terminaron en el hospital.
+si_falla Por tu cuenta el reto llegó a miles de jóvenes. Esa semana hubo tres heridos más.
+autor @parche_del_puente
+texto ¡Te toca! 50 mil vistas fáciles
+megusta 51200
+leyenda #RETODELPUENTE: SALTA AL CANAL Y GRÁBALO
+comentario @juanpa_10|el que no lo hace es gallina
+comentario @luchito.p|mi primo se lastimó haciendo eso
+fin
+
+reel vacunas
+imagen reels/reel_vacunas.png
+leyenda VACUNACIÓN GRATIS ESTE SÁBADO
+compartir si
+tipo util
+si_acierta Servicio de salud verificado: el centro vacunó a 600 niños el sábado.
+si_falla Era del centro de salud. Muchas familias no se enteraron.
+autor @salud_nova
+texto Jornada de vacunación gratis este sábado
+megusta 1900
+comentario @mama_de_dani|¿qué hay que llevar?
+comentario @salud_nova|el carné y nada más
+fin
+
+reel vale
+compartir no
+tipo privado
+si_acierta Bien: la cuenta tenía 3 días y la foto era robada. Le escribía a menores.
+si_falla Era un perfil falso: por tu cuenta, 30 menores más recibieron sus mensajes.
+autor @vale.15
+texto Comparte para que más gente me escriba
+megusta 310
+fondo #1d2230
+contacto vale.15 (CUENTA DE HACE 3 DÍAS)
+mensaje holaa tengo 15 y busco amigos
+mensaje escríbanme por interno
+mensaje pero no le digan a nadie
+mensaje mándenme una foto con el uniforme
+fin
+
+reel sorteo
+compartir no
+tipo estafa
+si_acierta Bien: nadie regala celulares. La cuenta robaba claves de los que participaban.
+si_falla Era una estafa: 900 seguidores tuyos escribieron su clave para «participar».
+autor @regalos_nova_2026
+texto Solo comparte y escribe tu clave para participar
+megusta 25300
+fondo #5b2a8a
+bloque 34 34 40 76 #1a1a1a
+bloque 37 40 34 62 #3fa0e8
+bloque 50 104 8 3 #555555
+bloque 14 30 4 4 #f2c14e
+bloque 90 44 4 4 #f2c14e
+bloque 20 96 4 4 #f2c14e
+bloque 86 104 4 4 #f2c14e
+letrero 54 122 1 #f2c14e #1a1a1a GRATIS
+leyenda ¡GANA ESTE CELULAR!
+comentario @mama_de_dani|yo quiero uno
+comentario @luchito.p|¿por qué piden la clave?
+fin

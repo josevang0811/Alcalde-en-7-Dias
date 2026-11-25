@@ -59,6 +59,31 @@ public class Noticia {
         return tipo;
     }
 
+    // Las historias (Historias.pde) traen sus propias tarjetas y su propio
+    // informe, porque las genéricas no cuentan lo que pasa en ellas.
+    // tarjetas: mayor, menor, neutra, negativa y otra negativa.
+    // informe: lo que era, la pista y la lección.
+    private String[] tarjetasPropias = null;
+    private String[] informePropio = null;
+
+    public Noticia conTarjetas(String[] tarjetas) {
+        tarjetasPropias = tarjetas;
+        return this;
+    }
+
+    public Noticia conInforme(String verdad, String pista, String leccion) {
+        informePropio = new String[] {verdad, pista, leccion};
+        return this;
+    }
+
+    public String[] getTarjetasPropias() {
+        return tarjetasPropias;
+    }
+
+    public String[] getInformePropio() {
+        return informePropio;
+    }
+
     // Quien la publico, para leer despues de "La publico ..."
     public String describirAutor() {
         if (tipoAutor == REPORTERO) {

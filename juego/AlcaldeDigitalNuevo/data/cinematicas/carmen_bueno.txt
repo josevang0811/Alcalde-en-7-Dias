@@ -1,0 +1,27 @@
+# Final bueno de la historia 2 (publicó la alerta o pidió que no compartieran el video)
+
+lienzo 480 270
+
+plano 8200
+ajustar carmen/ventana.png
+camara 240 150 1.1 250 140 1.4
+globo 150 70 900 @POLICIA_NOVA: ASÍ FUNCIONA LA ESTAFA «MIJO, NECESITO PLATA»
+destello 900
+sonido 900 sfx/aviso.wav
+subtitulo 2200 Doña Rosa|A mí me escribieron ayer, Carmen. No caí.
+subtitulo 5600 Carmen|Ay, mija. Menos mal.
+ambiente cinematicas/sonidos/mercado.wav
+fundido 600 300
+
+plano 9000
+ajustar carmen/cocina_calida.png
+camara 270 140 1.2 285 140 1.5
+ambiente nada
+subtitulo 600 Julián|Abue, ya vi el aviso. Mañana paso y le ayudo con las empanadas.
+subtitulo 5900 Carmen|Venga temprano, mijo.
+fundido 300 500
+
+plano 4500
+fondo #000000
+rotulo {cierre}
+fundido 400 600

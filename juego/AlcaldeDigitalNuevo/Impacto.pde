@@ -88,6 +88,11 @@ void informeDePublicacion(Publicacion p, Tarjeta tarjeta, Noticia n, String barr
     inf.pista = pistaDe(n);
     inf.comentarios = comentariosDe(p, n, accion);
     inf.leccion = leccionDe(p, n, accion);
+    if (n.getInformePropio() != null) {   // el de una historia (Noticiero.historiaDelDia)
+        inf.verdad = n.getInformePropio()[0];
+        inf.pista = n.getInformePropio()[1];
+        inf.leccion = n.getInformePropio()[2];
+    }
     mostrarInforme(inf, 1500);   // después de que llega y Nico contesta
 }
 
@@ -312,19 +317,20 @@ void dibujarInforme() {
     float x = c[0] + 9 * k, ancho = c[2] - 18 * k;
     float y = c[1] + 25 * k;
     // qué era y por qué
+    // la etiqueta y las líneas del impacto se parten si no caben en el papel
+    int lineasVerdad = partirPixel(inf.verdad.toUpperCase(), floor((ancho - 12 * k) / k)).size();
+    float altoVerdad = lineasVerdad * 10 * k + 4 * k;
     fill(inf.colorEtiqueta);
-    rect(x, y, ancho, 14 * k);
-    textoPixel(inf.verdad, x + 6 * k, y + 7 * k, k, #ffffff, LEFT, CENTER);
-    y += 20 * k;
+    rect(x, y, ancho, altoVerdad);
+    parrafoInforme(inf.verdad, x + 6 * k, y + 3 * k, ancho - 12 * k, k, #ffffff);
+    y += altoVerdad + 6 * k;
     y = parrafoInforme("¿POR QUÉ? " + inf.pista, x, y, ancho, k, #3a2a22) + 6 * k;
     // el impacto
     String apoyo = "APOYO EN " + inf.barrio.toUpperCase() + ": " + (inf.cambioApoyo > 0 ? "+" : "") + inf.cambioApoyo;
-    textoPixel(apoyo, x, y, k, inf.cambioApoyo >= 0 ? #3f9a4a : #d83a34, LEFT, TOP);
-    y += 11 * k;
+    y = parrafoInforme(apoyo, x, y, ancho, k, inf.cambioApoyo >= 0 ? #3f9a4a : #d83a34) + k;
     int dif = inf.credDespues - inf.credAntes;
-    textoPixel("CREDIBILIDAD: " + inf.credAntes + " A " + inf.credDespues + "  (" + (dif >= 0 ? "+" : "") + dif + ")", x, y, k,
-        dif >= 0 ? #3f9a4a : #d83a34, LEFT, TOP);
-    y += 15 * k;
+    y = parrafoInforme("CREDIBILIDAD: " + inf.credAntes + " A " + inf.credDespues + "  (" + (dif >= 0 ? "+" : "") + dif + ")", x, y, ancho, k,
+        dif >= 0 ? #3f9a4a : #d83a34) + 5 * k;
     // la enseñanza
     float altoLeccion = (partirPixel(inf.leccion.toUpperCase(), floor((ancho - 12 * k) / k)).size()) * 10 * k + 8 * k;
     fill(#fff6d8);
@@ -355,6 +361,9 @@ boolean clicEnInforme() {
     }
     if (millis() - momentoListoInforme > 400) {
         informeVisto = true;   // cualquier clic lo cierra (el botón es la guía)
+        if (estado == CELULAR) {
+            irA(MENU);   // con el informe se cierra también el celular
+        }
     }
     return true;
 }

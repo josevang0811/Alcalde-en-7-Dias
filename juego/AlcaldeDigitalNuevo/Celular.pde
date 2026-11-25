@@ -246,6 +246,7 @@ void enviarPublicacion() {
     envioTexto = tarjeta.getTexto();
     envioBarrio = barrioElegido;
     envioCategoria = p.getCategoria();
+    registrarResultadoHistoria(envioCategoria);   // si hoy hay historia, decide su final (Historias.pde)
     envioCamino = ciudad.caminoMasCorto(origen, barrioElegido);
     envioMinutos = ciudad.minutosMasCorto(origen, barrioElegido);
     envioCambio = p.getCambio();

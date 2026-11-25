@@ -57,6 +57,37 @@ void cargarTelevisor() {
     }
 }
 
+// La cortina musical del noticiero (data/tv/noticiero_musica.wav, solo en la
+// copia local: no se sube). Empieza al abrir la TV, se repite mientras está
+// abierta y se corta al volver a la oficina. Si falta el archivo, no suena.
+javax.sound.sampled.Clip clipNoticiero;
+boolean musicaNoticieroCargada = false;
+
+void empezarMusicaNoticiero() {
+    if (!musicaNoticieroCargada) {
+        musicaNoticieroCargada = true;
+        if (new java.io.File(dataPath("tv/noticiero_musica.wav")).exists()) {
+            clipNoticiero = abrirClipEncargo("tv/noticiero_musica.wav");   // Encargo.pde
+        }
+    }
+    if (clipNoticiero == null || clipNoticiero.isRunning()) {
+        return;
+    }
+    volumenClip(clipNoticiero, 20 * log(max(volumenMusica, 0.001)) / log(10) - 4);
+    clipNoticiero.setFramePosition(0);
+    clipNoticiero.loop(javax.sound.sampled.Clip.LOOP_CONTINUOUSLY);
+}
+
+void pararMusicaNoticiero() {
+    if (clipNoticiero != null && clipNoticiero.isRunning()) {
+        clipNoticiero.stop();
+    }
+}
+
+boolean musicaNoticieroSonando() {
+    return clipNoticiero != null && clipNoticiero.isRunning();
+}
+
 // Cuánto va del noticiero (ms): negativo mientras se ve la pantalla de
 // inicio al llegar. Solo tiene sentido con la TV acercándose o en grande.
 int tiempoNoticiero() {

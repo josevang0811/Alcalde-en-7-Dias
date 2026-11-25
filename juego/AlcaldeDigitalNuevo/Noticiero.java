@@ -36,14 +36,52 @@ public class Noticiero {
     }
 
     // Todas las noticias del banco, sin barajar ni sacar ninguna (para grabar
-    // la voz de la periodista antes de jugar, en MisionCampana.pde).
+    // la voz de la periodista antes de jugar, en MisionCampana.pde). Incluye
+    // las de las historias.
     public ArrayList<Noticia> todas() {
         ArrayList<Noticia> guardado = mazo;
         mazo = new ArrayList<Noticia>();
         agregarNoticias();
         ArrayList<Noticia> lista = mazo;
         mazo = guardado;
+        for (int dia = 1; dia <= 7; dia++) {
+            Noticia n = historiaDelDia(dia);
+            if (n != null) {
+                lista.add(n);
+            }
+        }
         return lista;
+    }
+
+    // Las historias de Ciudad Nova (Historias.pde): ciertos dias la noticia no
+    // sale del mazo sino que es fija, porque tiene una cinematica antes y un
+    // final que depende de lo que haga el jugador. null si ese dia no hay.
+    public Noticia historiaDelDia(int dia) {
+        if (dia == 1) {   // "El audio": Don Efrain y el video sin contexto
+            return new Noticia(Noticia.FALSA,
+                "el señor de la tienda La Esquina de Efra se lleva a los niños en un furgón blanco",
+                "@alerta_mercado", Noticia.ANONIMO,
+                "la Policía dice que no hay ninguna denuncia y vecinos con nombre cuentan que la niña del video es su nieta",
+                true);
+        }
+        if (dia == 5) {   // "Mijo, necesito plata": Doña Carmen y el video que se volvió chiste
+            return new Noticia(Noticia.OPINION,
+                "una abuela del Barrio Sur cayó en la estafa de «mijo, necesito plata» y el video de ella llorando en la tienda se volvió chiste",
+                "@memes_del_sur", Noticia.ANONIMO,
+                "unos se burlan de ella y otros dicen que hay que compartirlo para que nadie más caiga",
+                true)
+                .conTarjetas(new String[] {
+                    "Publica cómo funciona la estafa, sin mostrar a nadie.",
+                    "Pide que dejen de compartir el video.",
+                    "No digas nada: no es asunto tuyo.",
+                    "Compártelo «para que nadie más caiga».",
+                    "Súbelo con un chiste: así se riega más rápido."
+                })
+                .conInforme("EL VIDEO ERA REAL. LA VÍCTIMA, TAMBIÉN",
+                    "Doña Carmen no hizo nada malo: la engañaron. Compartir su video, aunque sea «para alertar», la expone y la humilla.",
+                    "Para alertar de una estafa no hace falta mostrar a la víctima: basta con explicar cómo funciona.");
+        }
+        return null;
     }
 
     private void barajar() {

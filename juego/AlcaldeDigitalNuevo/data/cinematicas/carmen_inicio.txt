@@ -1,0 +1,86 @@
+# Historia 2: "Mijo, necesito plata" (Doña Carmen, día 5). Unos 38 segundos.
+# Sale antes de que suene el teléfono (Historias.pde). Los dibujos están en
+# data/cinematicas/carmen/ (SpriteCook + variantes hechas con código, ver
+# herramientas_historias/carmen/armar_carmen.py).
+
+lienzo 480 270
+
+# 1. El barrio
+plano 2600
+fondo #000000
+rotulo BARRIO SUR · 4:15 P. M.
+ambiente cinematicas/sonidos/mercado.wav
+fundido 300 400
+
+# 2. La cocina: le llega un mensaje de un número que no conoce
+plano 4800
+ajustar carmen/cocina_dia.png
+camara 240 135 1.0 270 140 1.35
+sonido 900 sfx/aviso.wav
+sacudida 900 2
+destello 900
+luz 288 160 30 #8fb8ff 0.4
+subtitulo 1800 Carmen|¿Y este número? ¿Julián?
+ambiente nada
+fundido 400 200
+
+# 3. Los mensajes de "su nieto"
+plano 8200
+ajustar carmen/cocina_dia.png
+camara 280 150 2.2 284 158 2.6
+luz 288 160 30 #8fb8ff 0.5
+globo 206 104 300 ABUELA, SOY YO, JULIÁN
+globo 210 118 1700 ESTE ES MI NÚMERO NUEVO
+globo 206 132 3100 NECESITO 800 MIL HOY. ES URGENTE
+globo 212 146 4500 NO LE DIGAS A MI MAMÁ
+globo 208 160 5900 TE QUIERO, ABUE
+sonido 300 sfx/aviso.wav
+sonido 1700 sfx/aviso.wav
+sonido 3100 sfx/aviso.wav
+sonido 4500 sfx/aviso.wav
+sonido 5900 sfx/aviso.wav
+fundido 200 300
+
+# 4. La plata, en el corresponsal de la tienda
+plano 5200
+ajustar carmen/tienda_pago.png
+camara 220 150 1.1 240 160 1.4
+subtitulo 600 Carmen|Es para mi nieto, Lucho. Está en un apuro.
+globo 330 120 2600 ENVÍO EXITOSO · $800.000
+sonido 2600 sfx/aviso.wav
+ambiente cinematicas/sonidos/mercado.wav
+fundido 300 300
+
+# 5. Llama al número de siempre
+plano 8600
+ajustar carmen/cocina_tarde.png
+camara 280 120 1.6 290 115 1.9
+ambiente nada
+subtitulo 500 Carmen|¿Aló? ¿Julián, mijo? ¿Ya le llegó la plata?
+subtitulo 4100 Julián|¿Abuela? Yo no le he escrito nada... ¿Cuál plata?
+temblor 0.6
+fundido 300 300
+
+# 6. Cuando se da cuenta, alguien la graba
+plano 5000
+ajustar carmen/tienda_llanto.png
+camara 160 140 1.6 300 160 1.5
+sonido 400 cinematicas/sonidos/angustia.wav
+fundido 300 200
+
+# 7. El video ya da vueltas
+plano 7000
+ajustar carmen/tienda_llanto.png
+camara 338 165 2.8 338 165 3.2
+globo 318 122 400 @MEMES_DEL_SUR: JAJAJA LA ABUELA
+globo 326 138 1700 ¿QUIÉN CAE EN ESO?
+globo 316 154 3000 PÁSENLO
+globo 330 170 4200 +2.300 COMPARTIDOS
+destello 400
+destello 1700
+destello 3000
+sonido 400 sfx/aviso.wav
+sonido 1700 sfx/aviso.wav
+sonido 3000 sfx/aviso.wav
+sonido 4200 sfx/aviso.wav
+fundido 200 700

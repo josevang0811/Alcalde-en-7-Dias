@@ -159,6 +159,18 @@ public class Influencer {
     public ArrayList<Tarjeta> armarTarjetas(Noticia noticia) {
         int tipo = noticia.getTipo();
         ArrayList<Tarjeta> tarjetas = new ArrayList<Tarjeta>();
+        String[] propias = noticia.getTarjetasPropias();
+        if (propias != null) {
+            // las de una historia: cada texto con la acción que le corresponde
+            tarjetas.add(new Tarjeta(propias[0], accionCorrecta(tipo), MAYOR));
+            tarjetas.add(new Tarjeta(propias[1], CAUTELA, MENOR));
+            tarjetas.add(new Tarjeta(propias[2], CALLAR, NEUTRA));
+            tarjetas.add(new Tarjeta(propias[3], COMPARTIR, NEGATIVA));
+            tarjetas.add(new Tarjeta(propias[4], EXAGERAR, NEGATIVA));
+            tarjetas.add(new Tarjeta(TEXTO_IA, INVENTAR, IA));
+            Collections.shuffle(tarjetas, azar);
+            return tarjetas;
+        }
         tarjetas.add(tarjetaDe(MAYOR, tipo, tarjetas));
         tarjetas.add(tarjetaDe(MENOR, tipo, tarjetas));
         tarjetas.add(tarjetaDe(NEUTRA, tipo, tarjetas));

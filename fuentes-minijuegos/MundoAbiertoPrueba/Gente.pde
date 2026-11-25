@@ -280,7 +280,7 @@ void marcarFlecha(Candidato c, int flecha) {
     for (int k = 0; k < largoSecuencia(); k++) cola.add(int(random(4)));
     c.progresoPegar = 0.05;
     if (c == yo) errorConversacion = millis();   // se ve en el panel (dibujarSecuenciaJugador)
-    else avisarA(c, "¡Esa respuesta empeora las cosas! La conversación vuelve a empezar");
+    else avisarA(c, evento == LIVES ? "¡Esa respuesta empeora las cosas! La conversación vuelve a empezar" : "Flecha equivocada: la secuencia vuelve a empezar");
   }
 }
 
@@ -384,9 +384,13 @@ void dibujarSecuenciaJugador() {
   if (z == null || cola == null || cola.isEmpty()) return;
   int largo = largoSecuencia();
   int hechas = largo - cola.size();
+  boolean seEquivoco = millis() - errorConversacion < 1400;
+  if (evento != LIVES) {
+    dibujarFlechasJugador(z, cola, largo, hechas, seEquivoco);   // en la ronda de la gente, solo flechas
+    return;
+  }
   int f = cola.peek();                 // la dirección de la palabra correcta
   String[] conv = conversacionDe(z, hechas);
-  boolean seEquivoco = millis() - errorConversacion < 1400;
   // las palabras en su lugar: la correcta en la dirección f, las otras en las demás
   String[] palabras = new String[4];
   int mala = 2;
@@ -460,6 +464,71 @@ void dibujarSecuenciaJugador() {
     fill(hechas > 0 ? color(150, 220, 160) : color(246, 236, 200, 150));
   }
   text(abajo, cx, y0 + alto - 9 * pixel);
+}
+
+// La ronda de la gente: encima del ciudadano, la fila de flechas que hay que
+// marcar. Las hechas quedan en verde y la que sigue se resalta.
+void dibujarFlechasJugador(Ciudadano z, java.util.ArrayDeque<Integer> cola, int largo, int hechas, boolean seEquivoco) {
+  float celda = 18 * pixel, sep = 4 * pixel, pad = 7 * pixel;
+  String abajo = seEquivoco ? "TE EQUIVOCASTE: VUELVE A EMPEZAR" : "FLECHAS O WASD · F PARA DEJARLO";
+  textFont(fuente, 7 * pixel);
+  float fila = largo * celda + (largo - 1) * sep;
+  float ancho = max(fila, textWidth(abajo)) + pad * 2;
+  float inicioFila = (ancho - fila) / 2;   // las flechas van centradas en el panel
+  float alto = celda + pad * 2 + 12 * pixel;
+  float sx = aPantallaX(pantallaX(z.x, z.y));
+  float sy = aPantallaY(pantallaY(z.x, z.y) - 40) - alto;
+  float x0 = constrain(sx - ancho / 2, 6 * pixel, width - ancho - 6 * pixel);
+  float y0 = max(6 * pixel, sy);
+  caja(x0, y0, ancho, alto, 232);
+  if (seEquivoco) {
+    noFill();
+    stroke(216, 58, 52);
+    strokeWeight(2 * pixel);
+    rect(x0, y0, ancho, alto, 4 * pixel);
+    noStroke();
+  }
+  Integer[] faltan = cola.toArray(new Integer[0]);
+  for (int k = hechas; k < largo; k++) {
+    float x = x0 + inicioFila + k * (celda + sep);
+    float y = y0 + pad;
+    boolean actual = k == hechas;
+    if (actual) y -= abs(sin(millis() / 180.0)) * 2 * pixel;   // la que sigue salta un poco
+    noStroke();
+    fill(actual ? color(246, 236, 200) : color(246, 236, 200, 120));
+    rect(x, y, celda, celda, 3 * pixel);
+    flechaSecuencia(x + celda / 2, y + celda / 2, celda * 0.32, faltan[k - hechas], actual ? CAFE : color(43, 30, 26, 150));
+  }
+  for (int k = 0; k < hechas; k++) {
+    float x = x0 + inicioFila + k * (celda + sep);
+    noStroke();
+    fill(90, 170, 100);
+    rect(x, y0 + pad, celda, celda, 3 * pixel);
+    stroke(CREMA);
+    strokeWeight(2 * pixel);
+    noFill();
+    float cx = x + celda / 2, cy = y0 + pad + celda / 2;
+    line(cx - 4 * pixel, cy, cx - pixel, cy + 3 * pixel);
+    line(cx - pixel, cy + 3 * pixel, cx + 5 * pixel, cy - 4 * pixel);
+    noStroke();
+  }
+  textFont(fuente, 7 * pixel);
+  textAlign(CENTER, CENTER);
+  if (seEquivoco) fill(240, 110, 100);
+  else fill(246, 236, 200, 170);
+  text(abajo, x0 + ancho / 2, y0 + alto - 8 * pixel);
+}
+
+// Una flecha (0 arriba, 1 derecha, 2 abajo, 3 izquierda) centrada en (cx, cy)
+void flechaSecuencia(float cx, float cy, float r, int dir, color c) {
+  pushMatrix();
+  translate(cx, cy);
+  rotate(HALF_PI * dir);
+  noStroke();
+  fill(c);
+  triangle(0, -r * 1.3, -r * 1.1, -r * 0.1, r * 1.1, -r * 0.1);
+  rect(-r * 0.4, -r * 0.15, r * 0.8, r * 1.3);
+  popMatrix();
 }
 
 // "E: rápido · mantén E: asegurar" encima del ciudadano que alcanza el jugador

@@ -10,8 +10,13 @@
 // A la derecha, el noticiero da el resultado y abajo van los nombres del
 // equipo. Todo sale de data/creditos/creditos.txt, así se puede cambiar sin
 // tocar el código. El feed sube solo; con la rueda del mouse o las flechas
-// se puede mover. Al final (o con un clic) aparece la tarjeta de fin de
-// campaña en el libro.
+// se puede mover.
+//
+// Todo esto se ve dentro de una tablet. Con un clic (o espacio) la imagen de
+// la pantalla se guarda y sigue la cinemática del final
+// (data/cinematicas/final.txt): la cámara se aleja de la tablet, sube hasta
+// Mateo, él desliza la pantalla y aparece la foto con Andrés. Después, la
+// pantalla de inicio.
 
 boolean creditosActivos = false;
 int momentoCreditos;
@@ -97,25 +102,63 @@ boolean cumpleCondicion(String c) {
     return false;
 }
 
+// Al cerrar los créditos se guarda lo que muestra la tablet (la cinemática
+// arranca con esa imagen en la pantalla) y sigue el final.
 void terminarCreditos() {
     creditosActivos = false;
-    irA(ARBOL);   // la tarjeta de fin de campaña (Interfaz.pde)
+    pararMusicaNoticiero();   // Televisor.pde
+    creditosSinAviso = true;  // la imagen de la pantalla va sin el "CLIC O ESPACIO"
+    dibujarCreditos();
+    creditosSinAviso = false;
+    PImage pantalla = get(int(credX), int(credY), int(credW), int(credH));
+    imagenesCine.put("cinematicas/final/pantalla_creditos.png", pantalla);
+    empezarCinematica("final", "final");
+    if (!cinematicaActiva()) {
+        terminarFinal();      // si faltara final.txt, se sigue igual
+    }
+}
+
+// Después de la cinemática del final: en red, antes salen las votaciones
+// (Red.pde) sobre la oficina; solo, se vuelve a la pantalla de inicio.
+void terminarFinal() {
+    callarSonidosCine();      // Cinematica.pde
+    irA(MENU);
+    if (!hayVotaciones()) {
+        volverAlMenuPrincipal();
+    }
+}
+
+// Se deja lista una campaña nueva y se vuelve al menú principal
+void volverAlMenuPrincipal() {
+    cerrarRed();
+    reiniciarPartida();
+    volverAlMenu();
 }
 
 // ---------------------------------------------------------------------------
 // Dibujo
 
 float credX, credY, credW, credH;
+boolean creditosSinAviso = false;
 
 float crX(float pct) { return credX + credW * pct / 100; }
 float crY(float pct) { return credY + credH * pct / 100; }
 
 void dibujarCreditos() {
-    background(#050609);
-    credW = min(width, height * CRED_PROPORCION);
+    // la tablet: el marco oscuro y, adentro, la pantalla con los créditos
+    background(#07080b);
+    float marco = round(height * 0.045);
+    float margen = round(height * 0.03);
+    float libre = marco + margen;
+    credW = min(width - libre * 2, (height - libre * 2) * CRED_PROPORCION);
     credH = credW / CRED_PROPORCION;
-    credX = (width - credW) / 2;
-    credY = (height - credH) / 2;
+    credX = round((width - credW) / 2);
+    credY = round((height - credH) / 2);
+    dibujarMarcoTablet(marco);
+    clip(credX, credY, credW, credH);
+    fill(#050609);
+    noStroke();
+    rect(credX, credY, credW, credH);
     float celda = max(2, round(credW / 640));
     float t = (millis() - momentoCreditos) / 1000.0;
 
@@ -158,12 +201,27 @@ void dibujarCreditos() {
         textoPixel(n.toUpperCase(), crX(74), ny, celda, #bbbbbb, CENTER, CENTER);
         ny += celda * 14;
     }
-    if (t > 4) {
+    if (t > 4 && !creditosSinAviso) {
         float a = 0.5 + 0.5 * sin(millis() * 0.004);
         tint(255, 255 * a);   // la transparencia del texto va con tint (los textos se guardan por color)
         textoPixel("CLIC O ESPACIO PARA SEGUIR", crX(74), crY(96), celda, #a0a6b4, CENTER, CENTER);
         noTint();
     }
+    noClip();
+}
+
+// El borde de la tablet alrededor de la pantalla (igual al de final/tablet_pov.png)
+void dibujarMarcoTablet(float marco) {
+    noStroke();
+    fill(#1d1e23);
+    rect(credX - marco, credY - marco, credW + marco * 2, credH + marco * 2, marco * 0.9);
+    stroke(#4a4c55);
+    strokeWeight(max(2, marco * 0.08));
+    noFill();
+    rect(credX - marco, credY - marco, credW + marco * 2, credH + marco * 2, marco * 0.9);
+    noStroke();
+    fill(#33353c);
+    ellipse(credX - marco / 2, credY + credH / 2, marco * 0.22, marco * 0.22);   // la cámara
 }
 
 // El globo del presentador dice quién ganó; la pantallita de la derecha

@@ -110,14 +110,14 @@ camara 240 128 1.7 240 126 1.8
 fundido 100 0
 
 # 7. Mateo entiende que algo está mal
-plano 3000
+plano 3400
 ajustar prologo/puerta_mateo_triste.png
 camara 163 162 3.0 163 158 3.4
 subtitulo 500 Mateo|Andrés... ¿qué haces, hermano?
 fundido 100 0
 
 # 8. Andrés le habla sin dejar el balcón
-plano 4200
+plano 5400
 ajustar prologo/balcon.png
 camara 240 118 2.0 240 108 2.6
 subtitulo 300 Andrés|Ellos solo escribían, Mateo. Nunca vieron el daño que hacían.
@@ -153,7 +153,7 @@ ambiente cinematicas/sonidos/noche.wav
 fundido 600 900
 
 # 12. El salto en el tiempo; de aquí se pasa a la oficina de campaña
-plano 5200
+plano 7800
 fondo #000000
 ambiente nada
 rotulo 25 AÑOS DESPUÉS

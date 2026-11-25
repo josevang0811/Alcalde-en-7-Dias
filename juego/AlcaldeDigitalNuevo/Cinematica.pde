@@ -23,6 +23,11 @@
 //                                    imagen que sube <paso> pixeles cada <cada> ms (tarda <mueve>
 //                                    ms en subir), como un feed que alguien va bajando con el dedo.
 //                                    <escala> la achica: el feed del celular se dibuja a 4 por pixel
+//   encajar <imagen> <x> <y> <ancho> <alto> [desde] [dx0] [dx1] [mueve] [espera]
+//                                    imagen estirada al rectángulo (la pantalla de la tablet del
+//                                    final). Con dx0/dx1 se corre de lado en <mueve> ms, como
+//                                    cuando se desliza el dedo, empezando <espera> ms después de
+//                                    aparecer; lo que se sale del rectángulo no se dibuja
 //   camara <x0> <y0> <z0> <x1> <y1> <z1>    centro y zoom al empezar y al terminar el plano
 //   globo <x> <y> <desde> <texto>    notificación de Civitas sobre el lienzo
 //   subtitulo <desde> <quien>|<texto>       línea de diálogo abajo, en la barra negra
@@ -73,6 +78,7 @@ boolean cinematicaActiva() {
 // Lee data/cinematicas/<nombre>.txt, arma la cola de planos y empieza.
 void empezarCinematica(String nombre, String despues) {
     colaCine.clear();
+    clipsCine.clear();   // los sonidos viejos se cierran solos al terminar
     lienzoAncho = 320;
     lienzoAlto = 180;
     String[] lineas = loadStrings("cinematicas/" + nombre + ".txt");
@@ -84,7 +90,7 @@ void empezarCinematica(String nombre, String despues) {
     }
     PlanoCine p = null;
     for (String linea : lineas) {
-        linea = trim(linea);
+        linea = trim(linea).replace("{cierre}", textoCierreHistoria);   // el rótulo del final de una historia
         if (linea.length() == 0 || linea.startsWith("#")) {
             continue;
         }
@@ -107,6 +113,9 @@ void empezarCinematica(String nombre, String despues) {
             p.capas.add(new String[] {t[1], "0", "0", t.length > 2 ? t[2] : "0", "ajustar", t.length > 3 ? t[3] : ""});
         } else if (orden.equals("deslizar")) {
             p.capas.add(new String[] {t[1], t[2], t[3], t.length > 8 ? t[8] : "0", "deslizar", "", t[4], t[5], t[6], t[7]});
+        } else if (orden.equals("encajar")) {
+            p.capas.add(new String[] {t[1], t[2], t[3], t.length > 6 ? t[6] : "0", "encajar", "", t[4], t[5],
+                t.length > 7 ? t[7] : "0", t.length > 8 ? t[8] : "0", t.length > 9 ? t[9] : "0", t.length > 10 ? t[10] : "0"});
         } else if (orden.equals("camara")) {
             p.camara = new float[6];
             for (int k = 0; k < 6; k++) {
@@ -183,6 +192,12 @@ void terminarCinematica() {
     trasCinematica = "";
     if (despues.equals("portada")) {
         cerrarPortada();   // sigue la campaña como si no hubiera pasado nada
+    } else if (despues.equals("llamada")) {
+        momentoFaseLlamada = millis();   // la presentación de una historia: ahora sí suena el teléfono
+    } else if (despues.equals("dia")) {
+        momentoTransicionDia = millis();   // el final de una historia: sigue la pantalla negra (Ronda.pde)
+    } else if (despues.equals("final")) {
+        terminarFinal();                   // el final del juego (Creditos.pde)
     }
 }
 
@@ -261,6 +276,8 @@ void dibujarCinematica() {
         }
         if (c[4].equals("deslizar")) {
             dibujarDeslizarCine(img, c, t - int(c[3]));
+        } else if (c[4].equals("encajar")) {
+            dibujarEncajarCine(img, c, t - int(c[3]));
         } else if (c[4].equals("ajustar")) {
             image(img, 0, 0, lienzoAncho, lienzoAlto);
         } else {
@@ -271,14 +288,19 @@ void dibujarCinematica() {
     }
     dibujarLucesCine(p, t);
     dibujarLluviaCine(p);
-    for (String[] gl : p.globos) {
-        if (t >= int(gl[2])) {
-            dibujarGloboCine(float(gl[0]), float(gl[1]), gl[3], t - int(gl[2]));
-        }
-    }
     popMatrix();
 
     dibujarBarrasCine();
+    // Las notificaciones van encima, en la pantalla y no en el dibujo: así no
+    // crecen ni se salen del cuadro cuando la cámara se acerca o se mueve
+    globoAbajo = -1;
+    for (String[] gl : p.globos) {
+        if (t >= int(gl[2])) {
+            float gx = width / 2.0 + (float(gl[0]) - cx) * escala;
+            float gy = height / 2.0 + (float(gl[1]) - cy) * escala;
+            dibujarGloboCine(gx, gy, gl[3], t - int(gl[2]));
+        }
+    }
     // solo se ve el último subtítulo que ya empezó (uno reemplaza al anterior)
     String[] actual = null;
     for (String[] s : p.subtitulos) {
@@ -340,6 +362,23 @@ void dibujarDeslizarCine(PImage img, String[] c, int edad) {
         subida = n - 1 + curvaCine((edad - n * cada) / (float) mueve);
     }
     image(img, float(c[1]), float(c[2]) - subida * paso, img.width * escala, img.height * escala);
+}
+
+// Una imagen estirada a un rectángulo que se puede correr de lado (deslizar
+// el dedo en la tablet). Solo se dibuja la parte que queda dentro.
+void dibujarEncajarCine(PImage img, String[] c, int edad) {
+    float x = float(c[1]), y = float(c[2]), w = float(c[6]), h = float(c[7]);
+    float dx0 = float(c[8]), dx1 = float(c[9]);
+    int mueve = int(c[10]);
+    int espera = int(c[11]);
+    float dx = mueve <= 0 ? dx1 : lerp(dx0, dx1, curvaCine((edad - espera) / (float) mueve));
+    float izq = max(x, x + dx), der = min(x + w, x + dx + w);
+    if (der <= izq) {
+        return;
+    }
+    int u0 = round((izq - x - dx) / w * img.width);
+    int u1 = round((der - x - dx) / w * img.width);
+    image(img, izq, y, der - izq, h, u0, 0, u1, img.height);
 }
 
 // ---- Luces, lluvia y ambiente ----
@@ -455,20 +494,41 @@ void dibujarBarrasCine() {
     rect(0, height - barra, width, barra);
 }
 
-// Una notificación de Civitas: entra desde un lado y se queda
+// Una notificación de Civitas: entra desde un lado y se queda. (x, y) es
+// donde cae en la pantalla el punto que dice el archivo; si así no cabe, se
+// corre lo justo para quedar entera entre las barras negras, y si choca con
+// la anterior baja debajo de ella.
+float globoAbajo = -1;
+
 void dibujarGloboCine(float x, float y, String texto, int edad) {
     float entra = curvaCine(edad / 250.0);
-    float celda = 0.5;
-    float ancho = medirPixel(texto) * celda + 8;
+    float celda = max(2, round(height / 330.0));
+    float margen = celda * 6;
+    ArrayList<String> filas = partirPixel(texto, floor(width * 0.5 / celda));
+    float anchoTexto = 0;
+    for (String f : filas) {
+        anchoTexto = max(anchoTexto, medirPixel(f) * celda);
+    }
+    float ancho = anchoTexto + celda * 14;
+    float alto = filas.size() * celda * 10 + celda * 8;
+    float barra = height * 0.11;
+    x = constrain(x, margen, width - ancho - margen);
+    if (globoAbajo >= 0 && y < globoAbajo + celda * 3) {
+        y = globoAbajo + celda * 3;
+    }
+    y = constrain(y, barra + margen, height - barra - alto - margen);
+    globoAbajo = y + alto;
     pushMatrix();
-    translate(x + (1 - entra) * 20, y);
+    translate(x + (1 - entra) * celda * 20, y);
     noStroke();
     fill(14, 18, 30, 230 * entra);
-    rect(0, 0, ancho, 9, 2);
+    rect(0, 0, ancho, alto, celda * 2);
     fill(216, 58, 52, 255 * entra);
-    rect(0, 0, 2, 9);
+    rect(0, 0, celda * 2, alto);
     tint(255, 255 * entra);
-    textoPixel(texto, 5, 4.5, celda, color(225, 230, 240), LEFT, CENTER);
+    for (int k = 0; k < filas.size(); k++) {
+        textoPixel(filas.get(k), celda * 8, celda * 4 + celda * 5 + k * celda * 10, celda, color(225, 230, 240), LEFT, CENTER);
+    }
     noTint();
     popMatrix();
 }
@@ -502,7 +562,23 @@ void dibujarSubtituloCine(String quien, String texto, int edad) {
 }
 
 // Un sonido suelto (WAV de data/), sin librerías: con javax.sound
+// Lo que está sonando de la escena (para cortar la música si se salta el final)
+ArrayList<javax.sound.sampled.Clip> clipsCine = new ArrayList<javax.sound.sampled.Clip>();
+
+void callarSonidosCine() {
+    for (javax.sound.sampled.Clip c : clipsCine) {
+        if (c.isOpen()) {
+            c.stop();
+        }
+    }
+    clipsCine.clear();
+}
+
 void sonarCine(String archivo) {
+    if (archivo.startsWith("voz:")) {
+        sonarVozHistoria(archivo.substring(4));   // una voz grabada con Azure (Historias.pde)
+        return;
+    }
     try {
         javax.sound.sampled.AudioInputStream entrada = javax.sound.sampled.AudioSystem.getAudioInputStream(new java.io.File(dataPath(archivo)));
         final javax.sound.sampled.Clip clip = javax.sound.sampled.AudioSystem.getClip();
@@ -516,6 +592,7 @@ void sonarCine(String archivo) {
             }
         });
         clip.start();
+        clipsCine.add(clip);
     } catch (Exception e) {
         println("Cinematica: no se pudo sonar " + archivo);
     }

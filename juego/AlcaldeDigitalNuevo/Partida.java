@@ -111,6 +111,14 @@ public class Partida {
         }
     }
 
+    // Atajo para probar (teclas 1 a 7, Ronda.pde): pone la partida en ese
+    // dia con su noticia y sus tarjetas. Los puntos y el apoyo se quedan como
+    // estan.
+    public void irAlTurno(int dia) {
+        turno = Math.max(1, Math.min(TURNOS_TOTALES, dia));
+        prepararTurno();
+    }
+
     // Si la publicacion del turno resto, se reciben mas puntos; si sumo,
     // menos. Si no se publico, cuenta como quedar igual.
     private int puntosPorResultado() {
@@ -123,7 +131,9 @@ public class Partida {
     }
 
     private void prepararTurno() {
-        noticiaDelTurno = noticiero.siguiente();
+        // si hoy hay una historia, su noticia es fija (Noticiero.historiaDelDia)
+        Noticia deHistoria = noticiero.historiaDelDia(turno);
+        noticiaDelTurno = deHistoria != null ? deHistoria : noticiero.siguiente();
         tarjetasDelTurno = influencer.armarTarjetas(noticiaDelTurno);
         publicoEsteTurno = false;
         resultadoEsteTurno = 0;
@@ -348,6 +358,17 @@ public class Partida {
         }
         float azarito = 0.85f + azar.nextFloat() * 0.3f;
         return Math.round(base * azarito * factorCredibilidad());
+    }
+
+    // Un reel que el candidato compartió el último día (MisionReels.pde):
+    // si era un bulo o un mensaje de odio, queda en la huella del final.
+    public void anotarReelCompartido(boolean bulo, boolean odio) {
+        if (bulo) {
+            bulosCompartidos++;
+        }
+        if (odio) {
+            odioAmplificado++;
+        }
     }
 
     public int getAciertos() {

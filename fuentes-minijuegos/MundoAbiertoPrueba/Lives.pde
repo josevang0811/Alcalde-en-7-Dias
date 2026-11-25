@@ -124,7 +124,8 @@ void botLives(Bot b, float dt) {
     c.moviendose = false;
     b.ritmo -= dt;
     if (b.ritmo <= 0) {
-      b.ritmo = dificultad == FACIL ? random(0.6, 0.85) : random(0.35, 0.55);
+      // van despacio a propósito: así el jugador alcanza a quitarles los lives
+      b.ritmo = dificultad == FACIL ? random(1.2, 1.6) : random(0.8, 1.1);
       java.util.ArrayDeque<Integer> cola = secuencias.get(c.id);
       if (cola != null && !cola.isEmpty()) {
         int f = cola.peek();
@@ -165,7 +166,7 @@ void botLives(Bot b, float dt) {
   }
   c.moviendose = false;
   empezarSecuencia(c, m);
-  b.ritmo = 0.5;
+  b.ritmo = 1.2;   // se demoran un momento antes de la primera flecha
 }
 
 // Encima del que transmite: el letrero rojo de EN VIVO y el celular

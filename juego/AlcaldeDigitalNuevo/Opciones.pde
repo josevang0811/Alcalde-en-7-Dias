@@ -43,11 +43,38 @@ void actualizarMusicaJuego() {
     if (estado == MISION) {
         return;   // en la misión la maneja ella
     }
-    mision.musica.momento = mision.M_CALMA;
+    if (creditosActivos) {
+        empezarMusicaNoticiero();   // en los créditos del final suena la cortina del noticiero
+    } else if (estado != MAPA) {
+        pararMusicaNoticiero();   // si no, solo suena con la TV abierta
+    }
+    mision.musica.momento = reelsActivos ? mision.M_TENSION : mision.M_CALMA;   // los reels del día 7 van con tensión (MisionReels.pde)
     boolean hablan = videollamadaActiva || faseLlamada == LLAMADA_HABLANDO;
     // en las cinemáticas y en el encargo (que trae su propia música), sin música
     // y en la pantalla negra entre un día y otro, silencio
-    mision.musica.atenuar = (cinematicaActiva() || musicaEncargoSonando() || autodestruyendo() || transicionDiaActiva()) ? 0 : (hablan ? 0.3 : 1);
+    mision.musica.atenuar = (cinematicaActiva() || musicaEncargoSonando() || musicaNoticieroSonando() || autodestruyendo() || transicionDiaActiva()) ? 0 : (hablan ? 0.3 : 1);
+}
+
+// En los minijuegos del parque (EventoParque.pde) suena la música de la
+// misión que tiene más ritmo: la de tensión mientras se llega a la plaza, la
+// de escape durante la cuenta y la ronda, la de alerta en los últimos 10
+// segundos y la calma cuando sale la lista final.
+void actualizarMusicaEvento() {
+    if (mision == null || mision.musica == null || mundo == null) {
+        return;
+    }
+    mision.musica.volumenUsuario = volumenMusica;
+    mision.musica.atenuar = 1;
+    int r = mundo.estadoRonda;
+    int m = mision.M_TENSION;
+    if (r == mundo.CUENTA) {
+        m = mision.M_ESCAPE;
+    } else if (r == mundo.RONDA) {
+        m = mundo.relojRonda < 10 ? mision.M_ALERTA : mision.M_ESCAPE;
+    } else if (r == mundo.FINAL || r == mundo.VUELTA) {
+        m = mision.M_CALMA;
+    }
+    mision.musica.momento = m;
 }
 
 void cambiarVolumen(float v) {

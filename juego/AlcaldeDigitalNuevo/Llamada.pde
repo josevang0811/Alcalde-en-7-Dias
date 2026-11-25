@@ -111,7 +111,7 @@ void actualizarLlamada() {
         // no se cuelga mientras la voz sigue hablando: el texto no se quita
         // antes de que termine de decirlo (el tope es solo por si algo falla)
         boolean vozTodaviaSuena = vozSonando != null && vozSonando.isRunning();
-        int tope = llamadaDeValeria() ? 45000 : (llamadaDeEncargo() ? MAX_LLAMADA_ENCARGO : MAX_LLAMADA);
+        int tope = llamadaDeValeria() ? 45000 : (llamadaDeEncargo() || esDiaReels() ? MAX_LLAMADA_ENCARGO : MAX_LLAMADA);
         boolean seAcaboElTope = tiempoEnFase() >= tope;
         if ((tiempoEnFase() - esperaVoz >= finEscritura + pausaDeLectura() && !vozTodaviaSuena) || seAcaboElTope) {
             if (seAcaboElTope && vozSonando != null) {
@@ -125,6 +125,8 @@ void actualizarLlamada() {
         cambiarFaseLlamada(LLAMADA_ATENDIDA);
         if (llamadaDeValeria()) {
             alColgarValeria();   // al colgar Valeria empieza la mision (MisionCampana.pde)
+        } else if (esDiaReels()) {
+            empezarMisionReels();   // el último día, los reels (MisionReels.pde)
         } else {
             empezarEncargo();   // al colgar corren los 10 segundos del encargo (Encargo.pde)
         }
@@ -137,6 +139,9 @@ void actualizarPorSonar() {
     if (estado != MENU || mostrarPortada || saliendo || transicionDiaActiva()) {
         momentoFaseLlamada = millis();
     } else if (tiempoEnFase() >= ESPERA_ANTES_DE_SONAR) {
+        if (empezarInicioHistoria()) {   // si hoy hay historia, primero se ve a quién le pasa (Historias.pde)
+            return;
+        }
         cambiarFaseLlamada(LLAMADA_SONANDO);
     }
 }
@@ -255,6 +260,8 @@ void contestarTelefono(boolean repetir) {
     if (llamadaDeEncargo()) {
         partesLlamada = frasesEncargo(n);   // la llamada como misión secreta (Encargo.pde)
         empezarMusicaEncargo();
+    } else if (esDiaReels()) {
+        partesLlamada = frasesReels();   // el último día Marta llama por los reels (MisionReels.pde)
     }
     // En la ronda de la mision llama Valeria (MisionCampana.pde).
     if (llamadaDeValeria()) {

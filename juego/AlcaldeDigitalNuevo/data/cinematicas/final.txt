@@ -1,0 +1,59 @@
+# Final del juego (unos 24 segundos). Sale al cerrar los créditos (Creditos.pde).
+#
+# Los créditos se ven dentro de una tablet. Al cerrarlos, la imagen de la
+# pantalla se guarda como final/pantalla_creditos.png (no es un archivo: la
+# pone el código) y esta escena arranca con ella en la pantalla de la tablet,
+# para que parezca que la cámara sale de ahí.
+#
+# Dibujos en data/cinematicas/final/ (SpriteCook + arreglos con código, ver
+# herramientas_historias/final/armar_final.py):
+#   tablet_pov.png     la tablet en las manos de Mateo; la pantalla va de (132, 57) a (349, 204)
+#   tablet_manos.png   los pulgares, que van encima de lo que muestre la pantalla
+#   mateo_oficina.png  Mateo adulto en la oficina, de noche
+#   foto_pantalla.png  la foto de los hermanos en la galería de la tablet
+#   foto_hermanos.png  la misma foto, grande
+# Sonidos: final/musica_final.wav y final/deslizar.wav (hacer_sonidos_final.py).
+
+lienzo 480 270
+
+# 1. La cámara sale de la pantalla de la tablet
+plano 4200
+fondo #07080b
+ajustar final/tablet_pov.png
+encajar final/pantalla_creditos.png 132 57 217 147
+capa final/tablet_manos.png 0 0
+camara 240 130 1.66 240 135 1.0
+luz 240 130 130 #9fc3ff 0.22
+sonido 0 cinematicas/final/musica_final.wav
+fundido 0 350
+
+# 2. Sube por las manos hasta la cara de Mateo
+plano 5600
+ajustar final/mateo_oficina.png
+camara 240 190 2.3 240 92 1.55
+luz 240 175 70 #bcd6ff 0.3
+luz 72 125 60 #ffc070 0.25
+fundido 450 350
+
+# 3. Desliza la pantalla y aparece la foto
+plano 3900
+ajustar final/tablet_pov.png
+encajar final/pantalla_creditos.png 132 57 217 147 0 0 -217 750 900
+encajar final/foto_pantalla.png 132 57 217 147 0 217 0 750 900
+capa final/tablet_manos.png 0 0
+camara 240 132 1.2 240 130 1.45
+luz 240 130 130 #9fc3ff 0.2
+sonido 900 cinematicas/final/deslizar.wav
+fundido 350 500
+
+# 4. La foto de los dos y lo que Mateo le dice a Andrés
+plano 9200
+ajustar final/foto_hermanos.png
+camara 240 140 1.0 240 132 1.18
+subtitulo 1300 Mateo|Lo logramos, hermano. Nadie más va a vivir la vida que tú viviste.
+fundido 900 1600
+
+# 5. Negro
+plano 2200
+fondo #000000
+fundido 0 0

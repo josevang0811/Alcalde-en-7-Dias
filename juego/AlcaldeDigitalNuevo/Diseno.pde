@@ -872,6 +872,7 @@ void pantallaCajon() {
     if (avisoActivo()) {
         dibujarAviso();
     }
+    dibujarSalida();   // SALIR del menú: se oscurece y se cierra el juego (Interfaz.pde)
 }
 
 // ===========================================================================

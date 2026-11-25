@@ -368,7 +368,7 @@ void dibujarAyuda() {
   textFont(fuente, 9 * pixel);
   String s;
   if (estadoRonda == RONDA && evento == VOLANTES) s = "WASD caminar · Shift correr · E (mantener) pegar · Q botella · M mapa";
-  else if (estadoRonda == RONDA && evento == GENTE) s = "WASD caminar · E convencer · F asegurar (conversación) · Q botella · M mapa";
+  else if (estadoRonda == RONDA && evento == GENTE) s = "WASD caminar · E convencer · F asegurar (flechas) · Q botella · M mapa";
   else if (manejando != null) s = "W acelerar · S frenar · A D girar · E bajarte · M mapa";
   else if (estadoRonda == RONDA) s = "WASD caminar · Shift correr · F reclamar live" + (puedeManejar() ? " · E subirte a un carro" : "") + " · Q botella · M mapa";
   else s = "WASD caminar · Shift correr · E subirte a un carro · M mapa" + (modoPrueba ? " · C choques" : "");
